@@ -1,0 +1,61 @@
+### GET request to example server
+POST localhost:8090/create
+Content-Type: application/json
+
+{
+  "file_path": "C:\\Users\\maxl\\Documents\\test.txt",
+  "store_name" : "global-vault",
+  "secret_wrapper": {
+    "content": "<Context>\n   <Enviroment name=\"ENV_NAME\" value=\"{{ name }}\" type=\"java.lang.String\" override=\"false\" />\n</Context>",
+    "secret_references": {
+      "name": "global/name",
+      "name1": "global/name2",
+      "spring": "spring/jdbcurl"
+    }
+  }
+}
+
+
+###
+POST 10.0.0.59:8090/create
+Content-Type: application/json
+
+{
+  "file_path": "/var/lib/tomcat10/conf/localhost/app.xml",
+  "secret_wrapper": {
+    "content": "<Context>\n   <Enviroment name=\"ENV_NAME\" value=\"{{ name }}\" type=\"java.lang.String\" override=\"false\" />\n</Context>",
+    "secret_references": {
+      "name": "global"
+    }
+  }
+}
+
+###
+POST localhost:8090/store
+Content-Type: application/json
+
+{
+  "type": "hc-vault",
+  "url": "http://10.0.0.49:8200",
+  "auth": {
+    "token": "root"
+  },
+  "mountPath": "kv",
+  "referenceName": "secondVault"
+}
+
+
+### GET request to example server
+POST localhost:8090/create
+Content-Type: application/json
+
+{
+  "file_path": "C:\\Users\\maxl\\Documents\\test2.txt",
+  "store_name" : "secondVault",
+  "secret_wrapper": {
+    "content": "<Context>\n   <Enviroment name=\"ENV_NAME\" value=\"{{ name }}\" type=\"java.lang.String\" override=\"false\" />\n</Context>",
+    "secret_references": {
+      "name": "hello/world/here/test"
+    }
+  }
+}
