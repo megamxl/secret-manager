@@ -43,21 +43,21 @@ func (t TemplateService) FetchAndStoreTemplate(r io.ReadCloser) error {
 		return err
 	}
 
-	store, err := configByName.CreateStore()
+	store, err := configByName.CreateBackend()
 	if err != nil {
 		log.Print("Error creating store:", err)
 		return err
 	}
 
-	secret := ToParsedSecret(req)
+	secret := ToParsedSecret(req, configByName)
 
-	resolvedSecrets, err := stores.GetSecretsFromDataStructure(secret, configByName.MountPath, store)
+	resolvedSecrets, err := store.ResolveSecrets(secret)
 	if err != nil {
 		log.Print("Error fetching secrets:", err)
 		return err
 	}
 
-	template, err := templating.EvaluateTemplate(req.SecretWrapper.Content, resolvedSecrets.Secrets)
+	template, err := templating.EvaluateTemplate(req.SecretWrapper.Content, resolvedSecrets)
 	if err != nil {
 		log.Print("Error evaluating template:", err)
 		return err
@@ -68,11 +68,11 @@ func (t TemplateService) FetchAndStoreTemplate(r io.ReadCloser) error {
 		log.Print("Error creating file:", err)
 		return err
 	}
-	
+
 	return nil
 }
 
-func ToParsedSecret(request CreateSecretRequest) stores.ParsedSecret {
+func ToParsedSecret(request CreateSecretRequest, config stores.Config) stores.ParsedSecret {
 
 	refs := generateSecretRefsFromCreationRequest(request)
 
@@ -80,22 +80,23 @@ func ToParsedSecret(request CreateSecretRequest) stores.ParsedSecret {
 		FilePath:  request.FilePath,
 		Content:   request.SecretWrapper.Content,
 		StoreName: request.StoreName,
+		MountPath: config.MountPath,
 		Refs:      refs,
 	}
 }
 
-func generateSecretRefsFromCreationRequest(request CreateSecretRequest) []stores.SecretRefs {
+func generateSecretRefsFromCreationRequest(request CreateSecretRequest) []stores.SecretRef {
 
-	refs := make([]stores.SecretRefs, 0)
+	refs := make([]stores.SecretRef, 0)
 
 	for k, v := range request.SecretWrapper.SecretReferences {
 
 		path, remoteName := stores.SplitLastSlash(v)
 
-		refs = append(refs, stores.SecretRefs{
-			Name:             k,
-			PathToFolder:     path,
-			RemoteSecretName: remoteName,
+		refs = append(refs, stores.SecretRef{
+			TemplateName:                k,
+			RemotePathWithoutSecretName: path,
+			RemoteSecretName:            remoteName,
 		})
 	}
 

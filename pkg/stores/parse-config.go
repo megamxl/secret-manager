@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-
-	"github.com/hashicorp/vault-client-go"
 )
 
 type Config struct {
@@ -36,15 +34,23 @@ func LoadConfigFromFile(path string) (*Config, error) {
 
 func LoadConfigFromEnv() {}
 
-func (c Config) CreateStore() (*vault.Client, error) {
+func (c Config) CreateBackend() (SecretBackend, error) {
 
 	switch c.Type {
 	case "hc-vault":
-		client, err := SetupVaultClient(&c)
+		vaultIns := VaultBackend{}
+		err := vaultIns.InstateClient(&c)
 		if err != nil {
 			return nil, err
 		}
-		return client, nil
+		return &vaultIns, nil
+	case "az-vault":
+		azVault := AzureKeyVaultBackend{}
+		err := azVault.InstateClient(&c)
+		if err != nil {
+			return nil, err
+		}
+		return &azVault, nil
 	}
 
 	return nil, errors.New("invalid vault type")
