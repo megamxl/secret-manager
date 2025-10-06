@@ -21,14 +21,15 @@ POST 10.0.0.59:8090/create
 Content-Type: application/json
 
 {
-  "file_path": "/var/lib/tomcat10/conf/localhost/app.xml",
+  "file_path": "/etc/tomcat10/Catalina/localhost/app.xml",
+  "store_name": "vault",
   "secret_wrapper": {
-    "content": "<Context>\n   <Enviroment name=\"ENV_NAME\" value=\"{{ name }}\" type=\"java.lang.String\" override=\"false\" />\n</Context>",
+    "content": "<Context>\n   <Environment name=\"env.name\" value=\"{{ name }}\" type=\"java.lang.String\" override=\"false\" />\n</Context> \n",
     "secret_references": {
-      "name": "global"
+      "name": "global/name"
     }
   }
-}
+} 
 
 ###
 POST localhost:8090/store
@@ -42,6 +43,21 @@ Content-Type: application/json
   },
   "mountPath": "kv",
   "referenceName": "secondVault"
+}
+
+
+###
+POST 10.0.0.59:8090/store
+Content-Type: application/json
+
+{
+  "type": "hc-vault",
+  "url": "http://10.0.0.49:8200",
+  "auth": {
+    "token": "root"
+  },
+  "mountPath": "secret",
+  "referenceName": "vault"
 }
 
 

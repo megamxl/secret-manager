@@ -6,23 +6,20 @@ type ResolvedSecretsWithMetaData struct {
 }
 
 type SecretBackend interface {
-	instateClient()
-	getSecrets() map[string]string
+	InstateClient(config *Config) error
+	ResolveSecrets(ParsedSecret) (map[string]string, error)
 }
 
 type ParsedSecret struct {
-	FilePath  string       `json:"file_path,omitempty"`
-	Content   string       `json:"content,omitempty"`
-	StoreName string       `json:"store_name"`
-	Refs      []SecretRefs `json:"refs"`
+	FilePath  string      `json:"file_path,omitempty"`
+	Content   string      `json:"content,omitempty"`
+	StoreName string      `json:"store_name"`
+	MountPath string      `json:"mount_path"`
+	Refs      []SecretRef `json:"refs"`
 }
 
-type SecretRefs struct {
-	Name             string `json:"secret_name"`
-	PathToFolder     string `json:"secret_path_to_folder"`
-	RemoteSecretName string `json:"secret_remote_secret_name"`
-}
-
-func (ref SecretRefs) getFullPath() string {
-	return ref.PathToFolder + "/" + ref.RemoteSecretName
+type SecretRef struct {
+	TemplateName                string `json:"secret_template_name"`
+	RemotePathWithoutSecretName string `json:"secret_remote_path_without_secret_name"`
+	RemoteSecretName            string `json:"secret_remote_secret_name"`
 }
