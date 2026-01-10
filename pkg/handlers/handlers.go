@@ -6,7 +6,10 @@ import (
 	"net/http"
 	"secret-manager/pkg/service"
 	"secret-manager/pkg/stores"
+	"secret-manager/pkg/types"
+	"time"
 
+	"github.com/onatm/clockwerk"
 	"gorm.io/gorm"
 )
 
@@ -20,13 +23,27 @@ func SecretCreationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := tempService.FetchAndStoreTemplate(r.Body)
+	var req types.CreateSecretRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		log.Print("Error decoding request:", err)
+		return
+	}
+
+	defer r.Body.Close()
+
+	err = tempService.FetchAndStoreTemplate(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	defer r.Body.Close()
+	err = tempService.StoreSecretConfig(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -63,5 +80,14 @@ func SetupHandler(db *gorm.DB) {
 	storeService = service.StoreService{
 		Db: db,
 	}
+
+	job := service.RotationJob{
+		Db:      db,
+		Service: tempService,
+	}
+
+	c := clockwerk.New()
+	c.Every(5 * time.Second).Do(job)
+	c.Start()
 
 }
