@@ -49,3 +49,31 @@ func DeleteConfigByName(db *gorm.DB, name string) error {
 	}
 	return db.Delete(&StoreConfig{}, "name = ?", name).Error
 }
+
+func UpdateStoreConfig(db *gorm.DB, config stores.Config) error {
+	if db == nil {
+		return errors.New("database not initialized")
+	}
+
+	jsonData, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	result := db.Model(&StoreConfig{}).
+		Where("name = ?", config.ReferenceName).
+		Updates(map[string]interface{}{
+			"config": string(jsonData),
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// If no rows were affected, the store didn't exist
+	if result.RowsAffected == 0 {
+		return errors.New("store config not found")
+	}
+
+	return nil
+}

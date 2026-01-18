@@ -7,14 +7,12 @@ The goal is to write a system that can be used as a running agent or a single bi
 - contents of the configuration file in a templating language
 - And a user under which this file should be stored
 
+
+# State
+- Fail silent at the moment
+- Only File Level Resolvation (No Env Vars)
+- No Auth of requester
+
+
 ## Future Ideas
-- constant fetching of passwords
 - spiffe spire for authentication
-- Azure Key vault support 
-
-
-### Plan
-
-- Http Function that writes Files
-- Templating engine that resolves static placeholders
-- integrate vault secret getting 

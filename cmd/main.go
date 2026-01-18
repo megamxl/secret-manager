@@ -18,8 +18,8 @@ func main() {
 
 	handlers.SetupHandler(db)
 
-	http.HandleFunc("/create", handlers.SecretCreationHandler)
-	http.HandleFunc("/store", handlers.StoreCreationHandler)
+	http.HandleFunc("/secret", handlers.SecretHandler)
+	http.HandleFunc("/store", handlers.StoreHandler)
 
 	err = http.ListenAndServe(":8090", nil)
 	if err != nil {

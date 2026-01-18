@@ -1,13 +1,12 @@
 package service
 
 import (
-	"encoding/json"
-	"io"
 	"log"
 	"secret-manager/pkg/files_helper"
 	"secret-manager/pkg/persistence"
 	"secret-manager/pkg/stores"
 	"secret-manager/pkg/templating"
+	"secret-manager/pkg/types"
 
 	"gorm.io/gorm"
 )
@@ -16,26 +15,27 @@ type TemplateService struct {
 	Db *gorm.DB
 }
 
-type CreateSecretRequest struct {
-	FilePath      string `json:"file_path,omitempty"`
-	SecretWrapper Secret `json:"secret_wrapper"`
-	StoreName     string `json:"store_name"`
+func (t TemplateService) StoreSecretConfig(req types.CreateSecretRequest) error {
+	return persistence.SaveSecretConfig(t.Db, req)
 }
 
-type Secret struct {
-	Content          string            `json:"content,omitempty"`
-	SecretReferences map[string]string `json:"secret_references,omitempty"`
-}
-
-func (t TemplateService) FetchAndStoreTemplate(r io.ReadCloser) error {
-
-	var req CreateSecretRequest
-
-	err := json.NewDecoder(r).Decode(&req)
+func (t TemplateService) UpdateSecretConfig(req types.CreateSecretRequest) error {
+	err := persistence.UpdateSecretConfig(t.Db, req)
 	if err != nil {
-		log.Print("Error decoding request:", err)
 		return err
 	}
+
+	return t.FetchAndStoreTemplate(req)
+}
+
+func (t TemplateService) DeleteSecretConfig(name string) error {
+	// TODO: add logic here to delete the physical file
+	//files_helper.DeleteFile()
+
+	return persistence.DeleteSecretConfig(t.Db, name)
+}
+
+func (t TemplateService) FetchAndStoreTemplate(req types.CreateSecretRequest) error {
 
 	configByName, err := persistence.FindConfigByName(t.Db, req.StoreName)
 	if err != nil {
@@ -72,7 +72,7 @@ func (t TemplateService) FetchAndStoreTemplate(r io.ReadCloser) error {
 	return nil
 }
 
-func ToParsedSecret(request CreateSecretRequest, config stores.Config) stores.ParsedSecret {
+func ToParsedSecret(request types.CreateSecretRequest, config stores.Config) stores.ParsedSecret {
 
 	refs := generateSecretRefsFromCreationRequest(request)
 
@@ -85,7 +85,7 @@ func ToParsedSecret(request CreateSecretRequest, config stores.Config) stores.Pa
 	}
 }
 
-func generateSecretRefsFromCreationRequest(request CreateSecretRequest) []stores.SecretRef {
+func generateSecretRefsFromCreationRequest(request types.CreateSecretRequest) []stores.SecretRef {
 
 	refs := make([]stores.SecretRef, 0)
 

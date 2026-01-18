@@ -14,11 +14,32 @@ type StoreService struct {
 
 func (s StoreService) CreateStore(req stores.Config) error {
 
+	//TODO build and connect Backend before storing
+
 	err := persistence.SaveStoreConfig(s.Db, req)
 	if err != nil {
 		log.Print("Error creating store:", err)
 		return err
 	}
 
+	return nil
+}
+
+func (s StoreService) UpdateStore(name string, req stores.Config) error {
+	err := persistence.UpdateStoreConfig(s.Db, req)
+	if err != nil {
+		log.Printf("Error updating store %s: %v", name, err)
+		return err
+	}
+	return nil
+}
+
+// DeleteStore removes a store configuration from the database
+func (s StoreService) DeleteStore(name string) error {
+	err := persistence.DeleteConfigByName(s.Db, name)
+	if err != nil {
+		log.Printf("Error deleting store %s: %v", name, err)
+		return err
+	}
 	return nil
 }
