@@ -17,3 +17,12 @@ func CreateFile(path string, evaluatedTemplate *bytes.Buffer) error {
 
 	return nil
 }
+
+func DeleteFile(path string) error {
+	err := os.Remove(path)
+	if err != nil {
+		log.Print("Error deleting file:", err)
+		return err
+	}
+	return nil
+}

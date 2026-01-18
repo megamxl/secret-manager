@@ -16,13 +16,23 @@ type TemplateService struct {
 }
 
 func (t TemplateService) StoreSecretConfig(req types.CreateSecretRequest) error {
+	return persistence.SaveSecretConfig(t.Db, req)
+}
 
-	err := persistence.SaveSecretConfig(t.Db, req)
+func (t TemplateService) UpdateSecretConfig(req types.CreateSecretRequest) error {
+	err := persistence.UpdateSecretConfig(t.Db, req)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return t.FetchAndStoreTemplate(req)
+}
+
+func (t TemplateService) DeleteSecretConfig(name string) error {
+	// TODO: add logic here to delete the physical file
+	//files_helper.DeleteFile()
+
+	return persistence.DeleteSecretConfig(t.Db, name)
 }
 
 func (t TemplateService) FetchAndStoreTemplate(req types.CreateSecretRequest) error {
