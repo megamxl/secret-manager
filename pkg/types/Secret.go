@@ -64,13 +64,21 @@ func parseString(s string) (time.Duration, error) {
 	}
 
 	var total time.Duration
+	var unitFound bool // Track if at least one capture group was filled
 	units := []time.Duration{24 * time.Hour, time.Hour, time.Minute, time.Second}
 
 	for i, unit := range units {
 		if matches[i+1] != "" {
 			val, _ := strconv.Atoi(matches[i+1])
 			total += time.Duration(val) * unit
+			unitFound = true
 		}
 	}
+
+	// If the regex "matched" but all capture groups were empty (e.g., an empty or weird string)
+	if !unitFound {
+		return 0, errors.New("invalid duration format: no valid units provided")
+	}
+
 	return total, nil
 }

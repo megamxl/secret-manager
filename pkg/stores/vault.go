@@ -78,9 +78,11 @@ func (v *VaultBackend) ResolveSecrets(secret ParsedSecret) (map[string]string, e
 		}
 
 		for remoteName, secValue := range data {
-			name := getRefByRemoteName(secret.Refs, path, remoteName)
-			if name != nil {
-				result[name.TemplateName] = secValue
+			// We iterate the refs to find which template key matches this specific path+key
+			for _, ref := range secret.Refs {
+				if ref.RemotePathWithoutSecretName == path && ref.RemoteSecretName == remoteName {
+					result[ref.TemplateName] = secValue
+				}
 			}
 		}
 

@@ -11,15 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type TemplateService struct {
+type TemplateService interface {
+	FetchAndStoreTemplate(req types.CreateSecretRequest) error
+}
+type TemplateServiceImpl struct {
 	Db *gorm.DB
 }
 
-func (t TemplateService) StoreSecretConfig(req types.CreateSecretRequest) error {
+func (t TemplateServiceImpl) StoreSecretConfig(req types.CreateSecretRequest) error {
 	return persistence.SaveSecretConfig(t.Db, req)
 }
 
-func (t TemplateService) UpdateSecretConfig(req types.CreateSecretRequest) error {
+func (t TemplateServiceImpl) UpdateSecretConfig(req types.CreateSecretRequest) error {
 	err := persistence.UpdateSecretConfig(t.Db, req)
 	if err != nil {
 		return err
@@ -28,14 +31,14 @@ func (t TemplateService) UpdateSecretConfig(req types.CreateSecretRequest) error
 	return t.FetchAndStoreTemplate(req)
 }
 
-func (t TemplateService) DeleteSecretConfig(name string) error {
+func (t TemplateServiceImpl) DeleteSecretConfig(name string) error {
 	// TODO: add logic here to delete the physical file
 	//files_helper.DeleteFile()
 
 	return persistence.DeleteSecretConfig(t.Db, name)
 }
 
-func (t TemplateService) FetchAndStoreTemplate(req types.CreateSecretRequest) error {
+func (t TemplateServiceImpl) FetchAndStoreTemplate(req types.CreateSecretRequest) error {
 
 	configByName, err := persistence.FindConfigByName(t.Db, req.StoreName)
 	if err != nil {
@@ -57,7 +60,7 @@ func (t TemplateService) FetchAndStoreTemplate(req types.CreateSecretRequest) er
 		return err
 	}
 
-	template, err := templating.EvaluateTemplate(req.SecretWrapper.Content, resolvedSecrets)
+	template, err := templating.EvaluateTemplate(req.SecretWrapper.Content, resolvedSecrets, req.Name)
 	if err != nil {
 		log.Print("Error evaluating template:", err)
 		return err

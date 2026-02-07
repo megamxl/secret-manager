@@ -2,15 +2,14 @@ package templating
 
 import (
 	"bytes"
-	"log"
 	"text/template"
 )
 
-func EvaluateTemplate(content string, data map[string]string) (*bytes.Buffer, error) {
+func EvaluateTemplate(content string, data map[string]string, secretName string) (*bytes.Buffer, error) {
 
-	parse, err := template.New("test").Parse(content)
+	parse, err := template.New(secretName).Option("missingkey=error").Parse(content)
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
 
 	var buf bytes.Buffer
@@ -18,5 +17,6 @@ func EvaluateTemplate(content string, data map[string]string) (*bytes.Buffer, er
 	if err != nil {
 		return nil, err
 	}
+
 	return &buf, nil
 }
