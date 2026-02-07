@@ -12,7 +12,7 @@ import (
 
 type RotationJob struct {
 	Db      *gorm.DB
-	Service TemplateService
+	Service SecretService
 }
 
 func (r RotationJob) Run() {

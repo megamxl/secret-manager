@@ -11,8 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type TemplateService interface {
+type SecretService interface {
 	FetchAndStoreTemplate(req types.CreateSecretRequest) error
+	StoreSecretConfig(req types.CreateSecretRequest) error
+	UpdateSecretConfig(req types.CreateSecretRequest) error
+	DeleteSecretConfig(name string) error
 }
 type TemplateServiceImpl struct {
 	Db *gorm.DB

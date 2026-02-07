@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var tempService service.TemplateService
+var tempService service.SecretService
 var storeService service.StoreService
 
 func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
@@ -193,7 +193,7 @@ func StoreHandler(w http.ResponseWriter, r *http.Request) {
 
 func SetupHandler(db *gorm.DB) {
 
-	tempService = service.TemplateService{
+	tempService = service.TemplateServiceImpl{
 		Db: db,
 	}
 	storeService = service.StoreService{

@@ -13,7 +13,7 @@ import (
 	"errors"
 )
 
-// MockTemplateService satisfies the TemplateService interface
+// MockTemplateService satisfies the SecretService interface
 type MockTemplateService struct {
 	OnFetch func(req types.CreateSecretRequest) error
 }
@@ -23,6 +23,19 @@ func (m MockTemplateService) FetchAndStoreTemplate(req types.CreateSecretRequest
 		return m.OnFetch(req)
 	}
 	return nil
+}
+
+// These must be added to satisfy the SecretService interface
+func (m MockTemplateService) StoreSecretConfig(req types.CreateSecretRequest) error {
+	return errors.New("not implemented in mock")
+}
+
+func (m MockTemplateService) UpdateSecretConfig(req types.CreateSecretRequest) error {
+	return errors.New("not implemented in mock")
+}
+
+func (m MockTemplateService) DeleteSecretConfig(name string) error {
+	return errors.New("not implemented in mock")
 }
 
 func SetupRotationDB(t *testing.T) *gorm.DB {

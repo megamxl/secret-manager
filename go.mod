@@ -1,6 +1,6 @@
 module secret-manager
 
-go 1.25.7
+go 1.25.1
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.12.0
