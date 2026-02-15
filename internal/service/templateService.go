@@ -69,7 +69,7 @@ func (t TemplateServiceImpl) FetchAndStoreTemplate(req types.CreateSecretRequest
 		return err
 	}
 
-	err = files_helper.CreateFile(req.FilePath, template)
+	err = files_helper.CreateFileAtomic(req.FilePath, template)
 	if err != nil {
 		log.Print("Error creating file:", err)
 		return err

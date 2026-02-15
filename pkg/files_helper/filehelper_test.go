@@ -49,10 +49,10 @@ func TestCreateFile_TableDriven(t *testing.T) {
 			targetPath := filepath.Join(root, tc.filename)
 			buf := bytes.NewBufferString(tc.content)
 
-			err := CreateFile(targetPath, buf)
+			err := CreateFileAtomic(targetPath, buf)
 
 			if (err != nil) != tc.wantErr {
-				t.Fatalf("CreateFile() error = %v, wantErr %v", err, tc.wantErr)
+				t.Fatalf("CreateFileAtomic() error = %v, wantErr %v", err, tc.wantErr)
 			}
 
 			if !tc.wantErr {
@@ -75,7 +75,7 @@ func TestCreateFile_AtomicIntegrity(t *testing.T) {
 
 	// 2. Attempt to overwrite with INVALID content
 	invalidContent := bytes.NewBufferString(`{"version": 2, broken...`)
-	err := CreateFile(target, invalidContent)
+	err := CreateFileAtomic(target, invalidContent)
 
 	if err == nil {
 		t.Fatal("Expected error for invalid content")

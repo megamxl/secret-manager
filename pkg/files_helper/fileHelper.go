@@ -8,12 +8,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"secret-manager/internal/config"
 	"strings"
 
 	"sigs.k8s.io/yaml"
 )
 
-func CreateFile(path string, evaluatedTemplate *bytes.Buffer) error {
+func CreateFileAtomic(path string, evaluatedTemplate *bytes.Buffer) error {
 	// 1. Security Check (CWE-35 Mitigation)
 	cleanedPath, err := verifyPath(path)
 	if err != nil {
@@ -89,9 +90,6 @@ func DeleteFile(path string) error {
 // For master thesis https://cwe.mitre.org/data/definitions/35.html
 func verifyPath(path string) (string, error) {
 
-	//TODO from os.getEnv to config n
-	trustedRoots := strings.Split(os.Getenv("TRUSTED_ROOT"), ",")
-
 	c := filepath.Clean(path)
 	dir := filepath.Dir(c)
 	filename := filepath.Base(c)
@@ -104,7 +102,7 @@ func verifyPath(path string) (string, error) {
 
 	finalPath := filepath.Join(resolvedDir, filename)
 
-	err = inTrustedRoot(finalPath, trustedRoots)
+	err = inTrustedRoot(finalPath)
 	if err != nil {
 		return "", errors.New("security violation: path is outside of trusted root")
 	}
@@ -112,10 +110,10 @@ func verifyPath(path string) (string, error) {
 	return finalPath, nil
 }
 
-func inTrustedRoot(path string, trustedRoots []string) error {
+func inTrustedRoot(path string) error {
 	path = filepath.Clean(path)
 
-	for _, root := range trustedRoots {
+	for _, root := range config.Get().Agent.TrustedRoots {
 		root = filepath.Clean(root)
 
 		// 2. It must START with the root (not just contain it)

@@ -1,14 +1,15 @@
 package service
 
 import (
-	"github.com/glebarez/sqlite"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 	"secret-manager/pkg/persistence"
 	"secret-manager/pkg/types"
 	"testing"
 	"time"
+
+	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
 	"errors"
 )

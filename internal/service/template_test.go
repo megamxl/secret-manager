@@ -2,14 +2,15 @@ package service
 
 import (
 	"errors"
-	"github.com/glebarez/sqlite"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 	"secret-manager/pkg/persistence"
 	"secret-manager/pkg/stores"
 	"secret-manager/pkg/types"
 	"testing"
+
+	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 type MockBackend struct {

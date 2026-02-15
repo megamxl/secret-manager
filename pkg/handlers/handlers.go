@@ -5,7 +5,8 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"secret-manager/pkg/service"
+	"secret-manager/internal/logging"
+	service2 "secret-manager/internal/service"
 	"secret-manager/pkg/stores"
 	"secret-manager/pkg/types"
 	"time"
@@ -15,8 +16,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var tempService service.SecretService
-var storeService service.StoreService
+var tempService service2.SecretService
+var storeService service2.StoreService
 
 func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -191,16 +192,16 @@ func StoreHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SetupHandler(db *gorm.DB) {
+func SetupHandler(db *gorm.DB, log *logging.Loggers) {
 
-	tempService = service.TemplateServiceImpl{
+	tempService = service2.TemplateServiceImpl{
 		Db: db,
 	}
-	storeService = service.StoreService{
+	storeService = service2.StoreService{
 		Db: db,
 	}
 
-	job := service.RotationJob{
+	job := service2.RotationJob{
 		Db:      db,
 		Service: tempService,
 	}
