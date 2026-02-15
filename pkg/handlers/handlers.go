@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"secret-manager/internal/logging"
 	service2 "secret-manager/internal/service"
@@ -18,6 +18,7 @@ import (
 
 var tempService service2.SecretService
 var storeService service2.StoreService
+var log *logging.Loggers
 
 func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -40,6 +41,8 @@ func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and saved in the database", req.FilePath), "x", "CreateSecret")
+
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -58,6 +61,8 @@ func secretUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and updated in the database", req.FilePath), "x", "UpdateSecret")
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -79,6 +84,8 @@ func secretDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.AuditLogUserEvent(fmt.Sprintf("Managedfile with name \" %s \" has been resolved delted", name), "x", "DeleteSecret")
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -91,24 +98,25 @@ func handleStoreCreate(w http.ResponseWriter, r *http.Request) {
 	if handleServiceError(w, storeService.CreateStore(req)) {
 		return
 	}
+
+	log.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been created", req.ReferenceName), "x", "CreateSecret")
+
 	w.WriteHeader(http.StatusCreated)
 }
 
 func handleStoreUpdate(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
-	if name == "" {
-		http.Error(w, "Bad Request: name missing", http.StatusBadRequest)
-		return
-	}
 
 	req, ok := decodeStoreRequest(w, r)
 	if !ok {
 		return
 	}
 
-	if handleServiceError(w, storeService.UpdateStore(name, req)) {
+	if handleServiceError(w, storeService.UpdateStore(req)) {
 		return
 	}
+
+	log.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been updated", req.ReferenceName), "x", "UpdateSecret")
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -122,13 +130,16 @@ func handleStoreDelete(w http.ResponseWriter, r *http.Request) {
 	if handleServiceError(w, storeService.DeleteStore(name)) {
 		return
 	}
+
+	log.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been delted", name), "x", "DeleteSecret")
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func decodeStoreRequest(w http.ResponseWriter, r *http.Request) (stores.Config, bool) {
 	var req stores.Config
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding store request: %v", err)
+		log.App.Error(fmt.Sprintf("Error decoding store request: %v", err))
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return req, false
 	}
@@ -147,7 +158,7 @@ func decodeSecretRequest(w http.ResponseWriter, r *http.Request) (types.CreateSe
 	defer r.Body.Close()
 
 	if err := yaml.Unmarshal(body, &req); err != nil {
-		log.Printf("Decode error: %v", err)
+		log.App.Error(fmt.Sprintf("Error decoding request: %v", err))
 		http.Error(w, "Bad Request: Invalid format", 400)
 		return req, false
 	}
@@ -157,7 +168,7 @@ func decodeSecretRequest(w http.ResponseWriter, r *http.Request) (types.CreateSe
 
 func handleServiceError(w http.ResponseWriter, err error) bool {
 	if err != nil {
-		log.Printf("Service Error: %v", err)
+		log.App.Error(fmt.Sprintf("Service Error: %v", err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return true
 	}

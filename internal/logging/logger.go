@@ -65,6 +65,14 @@ func createAuditLogger(path string) *zap.Logger {
 	return zap.New(core, zap.Fields(zap.String("category", "audit")))
 }
 
+func (l *Loggers) AuditLogUserEvent(message string, userId string, action string) {
+	l.Audit.Info(
+		message,
+		zap.String("user", userId),
+		zap.String("action", action),
+	)
+}
+
 func (l *Loggers) Close() {
 	l.App.Sync()
 	l.Audit.Sync()

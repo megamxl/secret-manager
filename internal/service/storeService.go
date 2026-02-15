@@ -25,10 +25,10 @@ func (s StoreService) CreateStore(req stores.Config) error {
 	return nil
 }
 
-func (s StoreService) UpdateStore(name string, req stores.Config) error {
+func (s StoreService) UpdateStore(req stores.Config) error {
 	err := persistence.UpdateStoreConfig(s.Db, req)
 	if err != nil {
-		log.Printf("Error updating store %s: %v", name, err)
+		log.Printf("Error updating store %s: %v", req.ReferenceName, err)
 		return err
 	}
 	return nil
