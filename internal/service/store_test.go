@@ -48,13 +48,13 @@ func TestStoreService(t *testing.T) {
 		conf := stores.Config{ReferenceName: "vault-production"}
 
 		// In a real scenario, you'd change a field here
-		err := svc.UpdateStore("vault-production", conf)
+		err := svc.UpdateStore(conf)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Update Non-Existent Store Returns Error", func(t *testing.T) {
 		conf := stores.Config{ReferenceName: "ghost-vault"}
-		err := svc.UpdateStore("ghost-vault", conf)
+		err := svc.UpdateStore(conf)
 
 		// This should fail because persistence.UpdateStoreConfig
 		// returns an error if RowsAffected == 0
