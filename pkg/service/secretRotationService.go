@@ -4,8 +4,9 @@ import (
 	"context"
 	"log"
 	"secret-manager/pkg/persistence"
-	"sync/atomic"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 )
@@ -14,6 +15,26 @@ type RotationJob struct {
 	Db      *gorm.DB
 	Service SecretService
 }
+
+var (
+	// RerollSelectedTotal Track how many times an item was picked up by the DB query
+	RerollSelectedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "secret_manager_item_selected_total",
+		Help: "Total times a specific secret was selected for rotation",
+	}, []string{"file_path"})
+
+	// RerollSuccessTotal Track how many times an item successfully rotated
+	RerollSuccessTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "secret_manager_item_success_total",
+		Help: "Total times a specific secret was successfully rotated",
+	}, []string{"file_path"})
+
+	// RerollFailureTotal Track failures specifically per item
+	RerollFailureTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "secret_manager_item_failure_total",
+		Help: "Total times a specific secret failed rotation",
+	}, []string{"file_path"})
+)
 
 func (r RotationJob) Run() {
 
@@ -29,6 +50,10 @@ func (r RotationJob) Run() {
 
 	for _, reroll := range rerolls {
 		reroll := reroll
+
+		// 1. Increment "Selected" immediately (Item was picked up by the query)
+		RerollSelectedTotal.WithLabelValues(reroll.FilePath).Inc()
+
 		g.Go(func() error {
 			select {
 			case <-ctx.Done():
@@ -36,17 +61,21 @@ func (r RotationJob) Run() {
 			default:
 			}
 
+			// 2. Perform the work
 			if err := r.Service.FetchAndStoreTemplate(reroll); err != nil {
 				log.Printf("[ERROR] %s fetch failed: %v", reroll.FilePath, err)
-				atomic.AddInt32(&failedCount, 1)
-				return nil // Return nil to keep the group running
+				RerollFailureTotal.WithLabelValues(reroll.FilePath).Inc()
+				return nil
 			}
 
 			if err := persistence.SaveSecretConfig(r.Db, reroll); err != nil {
 				log.Printf("[ERROR] %s save failed: %v", reroll.FilePath, err)
-				atomic.AddInt32(&failedCount, 1)
+				RerollFailureTotal.WithLabelValues(reroll.FilePath).Inc()
+				return nil
 			}
 
+			// 3. Increment "Success" only if both steps passed
+			RerollSuccessTotal.WithLabelValues(reroll.FilePath).Inc()
 			return nil
 		})
 	}

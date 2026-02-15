@@ -5,6 +5,11 @@ import (
 	"net/http"
 	"secret-manager/pkg/handlers"
 	"secret-manager/pkg/persistence"
+	"secret-manager/pkg/service"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -17,6 +22,16 @@ func main() {
 	}
 
 	handlers.SetupHandler(db)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+		service.RerollSelectedTotal,
+		service.RerollFailureTotal,
+		service.RerollSuccessTotal,
+	)
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 	http.HandleFunc("/secret", handlers.SecretHandler)
 	http.HandleFunc("/store", handlers.StoreHandler)

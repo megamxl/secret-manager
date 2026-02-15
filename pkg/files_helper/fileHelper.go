@@ -8,8 +8,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"strings"
+
+	"sigs.k8s.io/yaml"
 )
 
 func CreateFile(path string, evaluatedTemplate *bytes.Buffer) error {
