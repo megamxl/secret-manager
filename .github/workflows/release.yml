@@ -25,7 +25,7 @@ jobs:
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
             -o secret-agent \
-            ./cmd/main.go
+            ./cmd/agent/main.go
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
