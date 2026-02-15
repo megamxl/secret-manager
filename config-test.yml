@@ -1,0 +1,16 @@
+agent:
+  nodeName: "test-dev-01"
+  workDir: .
+  trustedRoots:
+    - /private
+
+server:
+  port: 8090
+
+logging:
+  level: info
+  format: json
+  auditFile: ./audit.log
+
+database:
+  path: ./store_configs.db

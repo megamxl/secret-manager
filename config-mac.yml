@@ -1,0 +1,16 @@
+agent:
+  nodeName: "windows-dev-01"
+  workDir: /Users/maximiliannowak/GolandProjects/secret-manager
+  trustedRoots:
+    - /Users/maximiliannowak
+
+server:
+  port: 8090
+
+logging:
+  level: info
+  format: json
+  auditFile: /Users/maximiliannowak/GolandProjects/secret-manager/audit.log
+
+database:
+  path: /Users/maximiliannowak/GolandProjects/secret-manager/store_configs.db

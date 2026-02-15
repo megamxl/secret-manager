@@ -4,12 +4,20 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"secret-manager/internal/config"
 	"testing"
 )
 
 func TestCreateFile_TableDriven(t *testing.T) {
 	root := t.TempDir() // Isolated root for this test suite
-	os.Setenv("TRUSTED_ROOT", root+",/private"+root)
+	// Create a temporary config file inside the temp root
+
+	configPath := "../../config-test.yml"
+	config.Initialize(configPath)
+	config.Get().Agent.TrustedRoots = []string{
+		root,
+		"/private" + root,
+	}
 
 	// Define the test schema
 	tests := map[string]struct {
