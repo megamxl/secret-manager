@@ -3,6 +3,7 @@ package persistence
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"secret-manager/pkg/types"
 	"time"
@@ -40,6 +41,25 @@ func SaveSecretConfig(db *gorm.DB, config types.CreateSecretRequest) error {
 		Columns:   []clause.Column{{Name: "name"}},
 		DoUpdates: clause.AssignmentColumns([]string{"request", "reroll"}),
 	}).Create(&managedFile).Error
+}
+
+func GetRequestByName(db *gorm.DB, name string) (*types.CreateSecretRequest, error) {
+	var record ManagedFiles
+	var result types.CreateSecretRequest
+
+	// Lookup the record by the name column
+	err := db.Where("name = ?", name).First(&record).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal the stored JSON string into your response struct
+	err = json.Unmarshal([]byte(record.Request), &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request for %s: %w", name, err)
+	}
+
+	return &result, nil
 }
 
 func GetPendingRerolls(db *gorm.DB) ([]types.CreateSecretRequest, error) {

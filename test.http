@@ -1,0 +1,94 @@
+### Variables
+@host = http://localhost:8090
+@vault = secondVault
+@appSecret = pg-connection-string
+@stripeSecret = stripe-api-config
+
+
+### 2. Create: PostgreSQL Connection String
+# Reroll every 12 hours. Path uses Windows escaping.
+# Templates the user and password directly into the URI.
+POST {{host}}/secret
+Content-Type: application/json
+
+{
+  "name": "{{appSecret}}",
+  "file_path": "C:\\Users\\maxl\\Documents\\db.connection",
+  "store_name": "{{vault}}",
+  "reroll_time": "10S",
+  "secret_wrapper": {
+    "content": "postgres://{{ db_user }}:{{ db_pass }}@db.prod.local:5432/inventory?sslmode=verify-full",
+    "secret_references": {
+      "db_user": "database/creds/inventory-app/username",
+      "db_pass": "database/creds/inventory-app/password"
+    }
+  }
+}
+
+###
+
+### 3. Create: Payment Gateway YAML
+# Reroll every 1 day.
+# Demonstrates mixing hardcoded keys with templated secrets.
+POST {{host}}/secret
+Content-Type: application/json
+
+{
+  "name": "{{stripeSecret}}",
+  "file_path": "C:\\Users\\maxl\\Documents\\stripe.yaml",
+  "store_name": "{{vault}}",
+  "reroll_time": "10S",
+  "secret_wrapper": {
+    "content": "gateway:\n  provider: stripe\n  api_key: \"{{ .api_key }}\"\n  webhook_secret: \"{{ .webhook_id }}\"\n  timeout: 30s",
+    "secret_references": {
+      "api_key": "secret/data/payments/stripe/live_key",
+      "webhook_id": "secret/data/payments/stripe/webhook_signing_secret"
+    }
+  }
+}
+
+###
+
+### 4. Create: A "Legacy" Properties File
+# Reroll every 30 minutes.
+POST {{host}}/secret
+Content-Type: application/json
+
+{
+  "name": "java-legacy-props",
+  "file_path": "C:\\OldServer\\conf\\auth.properties",
+  "store_name": "{{vault}}",
+  "reroll_time": "1M",
+  "secret_wrapper": {
+    "content": "auth.ldap.bindDN=cn=admin,dc=example,dc=org\nauth.ldap.password={{ .ldap_pass }}\nauth.jwt.secret={{ .jwt_sign_key }}",
+    "secret_references": {
+      "ldap_pass": "secret/data/infrastructure/ldap/admin",
+      "jwt_sign_key": "secret/data/apps/auth-service/jwt-key"
+    }
+  }
+}
+
+###
+
+### 5. Update: Change Reroll frequency to a "Complex" string
+# Testing your regex with 1 Day, 2 Hours, 30 Minutes, 15 Seconds
+PUT {{host}}/secret
+Content-Type: application/json
+
+{
+  "name": "java-legacy-props",
+  "file_path": "C:\\OldServer\\conf\\auth.properties",
+  "store_name": "{{vault}}",
+  "reroll_time": "1D2H30M15S",
+  "secret_wrapper": {
+    "content": "auth.ldap.password={{ .ldap_pass }}",
+    "secret_references": {
+      "ldap_pass": "secret/data/infrastructure/ldap/admin"
+    }
+  }
+}
+
+###
+
+### 6. Cleanup (Optional)
+DELETE {{host}}/secret?name={{appSecret}}

@@ -1,0 +1,68 @@
+### Vault Configuration
+@vaultHost = http://10.0.0.49:8200
+@vaultToken = root
+
+### 1. Seed PostgreSQL Credentials
+POST {{vaultHost}}/v1/secret/data/database/creds/inventory-app
+X-Vault-Token: {{vaultToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "username": "admin_user_prod",
+    "password": "super-secret-db-password-123"
+  }
+}
+
+###
+
+### 2. Seed Stripe API Keys
+POST {{vaultHost}}/v1/secret/data/payments/stripe
+X-Vault-Token: {{vaultToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "live_key": "sk_live_51Mzfakekey...",
+    "webhook_signing_secret": "whsec_abc123..."
+  }
+}
+
+###
+
+### 3. Seed Infrastructure LDAP Secret
+POST {{vaultHost}}/v1/secret/data/infrastructure/ldap
+X-Vault-Token: {{vaultToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "admin": "ldap-bind-password-goes-here"
+  }
+}
+
+###
+
+### 4. Seed Auth Service JWT Key
+POST {{vaultHost}}/v1/secret/data/apps/auth-service
+X-Vault-Token: {{vaultToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "jwt-key": "32-character-long-secret-key-!!! "
+  }
+}
+
+###
+
+### 5. Seed Global Name (For your original test-secret1)
+POST {{vaultHost}}/v1/secret/data/global
+X-Vault-Token: {{vaultToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "name": "GlobalProductionEnvironment"
+  }
+}

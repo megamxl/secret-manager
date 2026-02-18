@@ -203,10 +203,11 @@ func StoreHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SetupHandler(db *gorm.DB, log *logging.Loggers) {
+func SetupHandler(db *gorm.DB, loggers *logging.Loggers) {
 
 	tempService = service2.TemplateServiceImpl{
-		Db: db,
+		Db:  db,
+		Log: loggers,
 	}
 	storeService = service2.StoreService{
 		Db: db,
@@ -216,6 +217,8 @@ func SetupHandler(db *gorm.DB, log *logging.Loggers) {
 		Db:      db,
 		Service: tempService,
 	}
+
+	log = loggers
 
 	c := clockwerk.New()
 	c.Every(5 * time.Second).Do(job)

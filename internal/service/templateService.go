@@ -1,7 +1,9 @@
 package service
 
 import (
+	"fmt"
 	"log"
+	"secret-manager/internal/logging"
 	"secret-manager/pkg/files_helper"
 	"secret-manager/pkg/persistence"
 	"secret-manager/pkg/stores"
@@ -18,7 +20,8 @@ type SecretService interface {
 	DeleteSecretConfig(name string) error
 }
 type TemplateServiceImpl struct {
-	Db *gorm.DB
+	Db  *gorm.DB
+	Log *logging.Loggers
 }
 
 func (t TemplateServiceImpl) StoreSecretConfig(req types.CreateSecretRequest) error {
@@ -36,7 +39,16 @@ func (t TemplateServiceImpl) UpdateSecretConfig(req types.CreateSecretRequest) e
 
 func (t TemplateServiceImpl) DeleteSecretConfig(name string) error {
 	// TODO: add logic here to delete the physical file
-	//files_helper.DeleteFile()
+
+	byName, err := persistence.GetRequestByName(t.Db, name)
+	if err != nil {
+		return err
+	}
+
+	err = files_helper.DeleteFile(byName.FilePath)
+	if err != nil {
+		return err
+	}
 
 	return persistence.DeleteSecretConfig(t.Db, name)
 }
@@ -74,6 +86,8 @@ func (t TemplateServiceImpl) FetchAndStoreTemplate(req types.CreateSecretRequest
 		log.Print("Error creating file:", err)
 		return err
 	}
+
+	t.Log.AuditLogUserEvent(fmt.Sprintf("File at path %s was resolved and saved", req.FilePath), "system", "rerolledFile")
 
 	return nil
 }
