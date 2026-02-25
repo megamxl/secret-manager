@@ -36,6 +36,20 @@ func (s StoreService) UpdateStore(req stores.Config) error {
 	return nil
 }
 
+func (s StoreService) GetAllStores() ([]stores.Config, error) {
+
+	allStores, err := persistence.GetAllStores(s.Db)
+	if err != nil {
+		logging.L.App.Error(fmt.Sprintf("Error getting all stores: %v", err))
+		return nil, err
+	}
+
+	for _, config := range allStores {
+		config.Auth = nil
+	}
+	return allStores, nil
+}
+
 // DeleteStore removes a store configuration from the database
 func (s StoreService) DeleteStore(name string) error {
 

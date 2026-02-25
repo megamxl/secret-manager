@@ -17,6 +17,7 @@ type SecretService interface {
 	StoreSecretConfig(req types.CreateSecretRequest) error
 	UpdateSecretConfig(req types.CreateSecretRequest) error
 	DeleteSecretConfig(name string) error
+	GetAllSecretConfigs() ([]types.CreateSecretRequest, error)
 }
 type TemplateServiceImpl struct {
 	Db *gorm.DB
@@ -48,6 +49,14 @@ func (t TemplateServiceImpl) DeleteSecretConfig(name string) error {
 	}
 
 	return persistence.DeleteSecretConfig(t.Db, name)
+}
+
+func (t TemplateServiceImpl) GetAllSecretConfigs() ([]types.CreateSecretRequest, error) {
+	allStores, err := persistence.GetAllSecretConfigs(t.Db)
+	if err != nil {
+		return nil, err
+	}
+	return allStores, nil
 }
 
 func (t TemplateServiceImpl) FetchAndStoreTemplate(req types.CreateSecretRequest) error {

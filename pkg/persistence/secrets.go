@@ -20,6 +20,34 @@ type ManagedFiles struct {
 	Reroll  time.Time `gorm:"index"`
 }
 
+func GetAllSecretConfigs(db *gorm.DB) ([]types.CreateSecretRequest, error) {
+	if db == nil {
+		return nil, errors.New("database not initialized")
+	}
+
+	var records []ManagedFiles
+	// 1. Fetch all records from the managed_files table
+	if err := db.Find(&records).Error; err != nil {
+		return nil, err
+	}
+
+	// 2. Prepare the result slice
+	results := make([]types.CreateSecretRequest, 0, len(records))
+
+	// 3. Loop through records and unmarshal the JSON request field
+	for _, record := range records {
+		var config types.CreateSecretRequest
+		if err := json.Unmarshal([]byte(record.Request), &config); err != nil {
+			// Log the error but continue so one bad record doesn't break the whole list
+			logging.L.App.Error(fmt.Sprintf("Failed to unmarshal record %s: %v", record.Name, err))
+			continue
+		}
+		results = append(results, config)
+	}
+
+	return results, nil
+}
+
 func SaveSecretConfig(db *gorm.DB, config types.CreateSecretRequest) error {
 	if db == nil {
 		return errors.New("database not initialized")

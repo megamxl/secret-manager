@@ -68,6 +68,25 @@ func secretDeleteHandler(w http.ResponseWriter, r *http.Request, req types.Creat
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func secretListHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	secrets, err := tempService.GetAllSecretConfigs()
+	if handleServiceError(w, err) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(secrets); err != nil {
+		logging.L.App.Error(fmt.Sprintf("Error encoding secrets: %v", err))
+		helpers.HttpError(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
+}
+
 func handleStoreCreate(w http.ResponseWriter, r *http.Request, req stores.Config) {
 
 	if handleServiceError(w, storeService.CreateStore(req)) {
@@ -93,6 +112,25 @@ func handleStoreDelete(w http.ResponseWriter, r *http.Request, req stores.Config
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func storeListHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	allStores, err := storeService.GetAllStores()
+	if handleServiceError(w, err) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(allStores); err != nil {
+		logging.L.App.Error(fmt.Sprintf("Error encoding stores: %v", err))
+		helpers.HttpError(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
 }
 
 func decodeStoreRequest(w http.ResponseWriter, r *http.Request) (stores.Config, bool) {
@@ -136,13 +174,17 @@ func handleServiceError(w http.ResponseWriter, err error) bool {
 
 func SecretHandler(w http.ResponseWriter, r *http.Request) {
 
-	req, ok := decodeSecretRequest(w, r)
-	if !ok && r.Method != http.MethodDelete {
-		helpers.HttpError(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
-		return
-	}
-
+	var req types.CreateSecretRequest
+	var ok bool // Declare ok beforehand
 	action := ""
+
+	if r.Method != http.MethodGet {
+		req, ok = decodeSecretRequest(w, r)
+		if !ok {
+			helpers.HttpError(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
+			return
+		}
+	}
 
 	switch r.Method {
 	case http.MethodPost:
@@ -154,6 +196,9 @@ func SecretHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		secretDeleteHandler(w, r, req)
 		action = "DeleteSecret"
+	case http.MethodGet:
+		secretListHandler(w, r)
+		action = "ListSecrets"
 	default:
 		w.Header().Set("Allow", "POST, PUT, DELETE")
 		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -182,13 +227,17 @@ func SecretHandler(w http.ResponseWriter, r *http.Request) {
 
 func StoreHandler(w http.ResponseWriter, r *http.Request) {
 
-	req, ok := decodeStoreRequest(w, r)
-	if !ok && r.Method != http.MethodDelete {
-		helpers.HttpError(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
-		return
-	}
-
+	var req stores.Config
+	var ok bool
 	action := ""
+
+	if r.Method != http.MethodGet {
+		req, ok = decodeStoreRequest(w, r)
+		if !ok {
+			helpers.HttpError(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
+			return
+		}
+	}
 
 	switch r.Method {
 	case http.MethodPost:
@@ -200,6 +249,9 @@ func StoreHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		handleStoreDelete(w, r, req)
 		action = "DeleteStore"
+	case http.MethodGet:
+		storeListHandler(w, r)
+		action = "ListStore"
 	default:
 		w.Header().Set("Allow", "POST, PUT, DELETE")
 		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)

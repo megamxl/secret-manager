@@ -5,6 +5,12 @@
 @stripeSecret = stripe-api-config
 
 
+### 1 Get all stores
+GET {{host}}/secret
+
+### 1 Get all stores
+GET {{host}}/store
+
 ### 2. Create: PostgreSQL Connection String
 # Reroll every 12 hours. Path uses Windows escaping.
 # Templates the user and password directly into the URI.
@@ -39,7 +45,7 @@ Content-Type: application/json
   "store_name": "{{vault}}",
   "reroll_time": "10S",
   "secret_wrapper": {
-    "content": "gateway:\n  provider: stripe\n  api_key: \"{{ .api_key }}\"\n  webhook_secret: \"{{ .webhook_id }}\"\n  timeout: 30s",
+    "content": "gateway:\n  provider: stripe\n  api_key: \"{{ api_key }}\"\n  webhook_secret: \"{{ webhook_id }}\"\n  timeout: 30s",
     "secret_references": {
       "api_key": "secret/data/payments/stripe/live_key",
       "webhook_id": "secret/data/payments/stripe/webhook_signing_secret"
