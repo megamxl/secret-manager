@@ -1,6 +1,8 @@
 package service
 
 import (
+	"os"
+	"secret-manager/internal/logging"
 	"secret-manager/pkg/persistence"
 	"secret-manager/pkg/types"
 	"testing"
@@ -47,6 +49,11 @@ func SetupRotationDB(t *testing.T) *gorm.DB {
 	// Ensure we migrate BOTH models used in the persistence layer
 	err = db.AutoMigrate(&persistence.ManagedFiles{}, &persistence.StoreConfig{})
 	require.NoError(t, err)
+
+	logging.L = &logging.Loggers{
+		App:   logging.CreateLogger("info", "console", os.Stdout),
+		Audit: logging.CreateLogger("info", "console", os.Stdout),
+	}
 
 	return db
 }

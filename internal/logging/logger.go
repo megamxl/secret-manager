@@ -16,7 +16,7 @@ type Loggers struct {
 
 func Setup(level, format, auditFile string) {
 	// Application logger
-	appLogger := createLogger(level, format, os.Stdout)
+	appLogger := CreateLogger(level, format, os.Stdout)
 
 	// Audit logger (always JSON, separate file)
 	auditLogger := createAuditLogger(auditFile)
@@ -27,7 +27,7 @@ func Setup(level, format, auditFile string) {
 	}
 }
 
-func createLogger(level, format string, output *os.File) *zap.Logger {
+func CreateLogger(level, format string, output *os.File) *zap.Logger {
 	lvl, _ := zapcore.ParseLevel(level)
 
 	encoderCfg := zapcore.EncoderConfig{
