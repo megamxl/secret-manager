@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"secret-manager/internal/helpers"
 	"secret-manager/internal/logging"
 	"secret-manager/internal/service"
 	"secret-manager/pkg/authentication"
@@ -22,7 +23,7 @@ var storeService service.StoreService
 
 func secretCreationHandler(w http.ResponseWriter, r *http.Request, req types.CreateSecretRequest) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -41,12 +42,12 @@ func secretCreationHandler(w http.ResponseWriter, r *http.Request, req types.Cre
 
 func secretUpdateHandler(w http.ResponseWriter, r *http.Request, req types.CreateSecretRequest) {
 	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	if err := tempService.UpdateSecretConfig(req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.HttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -55,12 +56,12 @@ func secretUpdateHandler(w http.ResponseWriter, r *http.Request, req types.Creat
 
 func secretDeleteHandler(w http.ResponseWriter, r *http.Request, req types.CreateSecretRequest) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	if err := tempService.DeleteSecretConfig(req.Name); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.HttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -98,7 +99,7 @@ func decodeStoreRequest(w http.ResponseWriter, r *http.Request) (stores.Config, 
 	var req stores.Config
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logging.L.App.Error(fmt.Sprintf("Error decoding store request: %v", err))
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		helpers.HttpError(w, "Bad Request", http.StatusBadRequest)
 		return req, false
 	}
 	defer r.Body.Close()
@@ -110,14 +111,14 @@ func decodeSecretRequest(w http.ResponseWriter, r *http.Request) (types.CreateSe
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Can't read body", 400)
+		helpers.HttpError(w, "Can't read body", 400)
 		return req, false
 	}
 	defer r.Body.Close()
 
 	if err := yaml.Unmarshal(body, &req); err != nil {
 		logging.L.App.Error(fmt.Sprintf("Error decoding request: %v", err))
-		http.Error(w, "Bad Request: Invalid format", 400)
+		helpers.HttpError(w, "Bad Request: Invalid format", 400)
 		return req, false
 	}
 
@@ -127,7 +128,7 @@ func decodeSecretRequest(w http.ResponseWriter, r *http.Request) (types.CreateSe
 func handleServiceError(w http.ResponseWriter, err error) bool {
 	if err != nil {
 		logging.L.App.Error(fmt.Sprintf("Service Error: %v", err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helpers.HttpError(w, err.Error(), http.StatusInternalServerError)
 		return true
 	}
 	return false
@@ -137,7 +138,7 @@ func SecretHandler(w http.ResponseWriter, r *http.Request) {
 
 	req, ok := decodeSecretRequest(w, r)
 	if !ok && r.Method != http.MethodDelete {
-		http.Error(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
+		helpers.HttpError(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
 		return
 	}
 
@@ -155,13 +156,21 @@ func SecretHandler(w http.ResponseWriter, r *http.Request) {
 		action = "DeleteSecret"
 	default:
 		w.Header().Set("Allow", "POST, PUT, DELETE")
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	caller, err := callerString(r)
 	if err != nil {
-		http.Error(w, "The request passed the Auth Chack but no Identify was set call the Support", http.StatusBadRequest)
+		helpers.HttpError(w, "The request passed the Auth Chack but no Identify was set call the Support", http.StatusBadRequest)
+	}
+
+	if w.Header().Get("IsError") == "true" {
+		logging.L.AuditLogUserEvent(
+			fmt.Sprintf("FAILED update secret %s", req.FilePath),
+			caller,
+			action)
+		return
 	}
 
 	logging.L.AuditLogUserEvent(
@@ -175,7 +184,7 @@ func StoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	req, ok := decodeStoreRequest(w, r)
 	if !ok && r.Method != http.MethodDelete {
-		http.Error(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
+		helpers.HttpError(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
 		return
 	}
 
@@ -193,12 +202,20 @@ func StoreHandler(w http.ResponseWriter, r *http.Request) {
 		action = "DeleteStore"
 	default:
 		w.Header().Set("Allow", "POST, PUT, DELETE")
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		helpers.HttpError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 
 	caller, err := callerString(r)
 	if err != nil {
-		http.Error(w, "The request passed the Auth Chack but no Identify was set call the Support", http.StatusBadRequest)
+		helpers.HttpError(w, "The request passed the Auth Chack but no Identify was set call the Support", http.StatusBadRequest)
+	}
+
+	if w.Header().Get("IsError") == "true" {
+		logging.L.AuditLogUserEvent(
+			fmt.Sprintf("FAILED update store %s", req.ReferenceName),
+			caller,
+			action)
+		return
 	}
 
 	logging.L.AuditLogUserEvent(
