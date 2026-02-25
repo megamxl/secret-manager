@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"secret-manager/internal/logging"
 	"secret-manager/pkg/types"
 	"time"
 
@@ -76,7 +76,7 @@ func GetPendingRerolls(db *gorm.DB) ([]types.CreateSecretRequest, error) {
 		var req types.CreateSecretRequest
 		// Unmarshal the JSON string back into the struct only json since we only persist json
 		if err := json.Unmarshal([]byte(rec.Request), &req); err != nil {
-			log.Println("Error unmarshalling request for reroll:", err)
+			logging.L.App.Error(fmt.Sprintf("Error unmarshalling request for reroll: %s", err))
 			continue
 		}
 		results = append(results, req)

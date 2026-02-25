@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"secret-manager/internal/config"
@@ -81,7 +80,6 @@ func validateContentFormat(path string, data []byte) error {
 func DeleteFile(path string) error {
 	err := os.Remove(path)
 	if err != nil {
-		log.Print("Error deleting file:", err)
 		return err
 	}
 	return nil

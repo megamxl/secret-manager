@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"secret-manager/internal/logging"
 	"strings"
 	"time"
 
@@ -68,7 +68,7 @@ func (v *VaultBackend) ResolveSecrets(secret ParsedSecret) (map[string]string, e
 	for path := range pathGroups {
 		secretResp, err := v.client.Secrets.KvV2Read(context.Background(), path, vault.WithMountPath(secret.MountPath))
 		if err != nil {
-			log.Printf("Error reading path %s: %v\n", path, err)
+			logging.L.App.Error(fmt.Sprintf("Error reading path %s: %v\n", path, err))
 			return nil, err
 		}
 

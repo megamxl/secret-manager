@@ -1,7 +1,8 @@
 package service
 
 import (
-	"log"
+	"fmt"
+	"secret-manager/internal/logging"
 	"secret-manager/pkg/persistence"
 	"secret-manager/pkg/stores"
 
@@ -18,7 +19,7 @@ func (s StoreService) CreateStore(req stores.Config) error {
 
 	err := persistence.SaveStoreConfig(s.Db, req)
 	if err != nil {
-		log.Print("Error creating store:", err)
+		logging.L.App.Error(fmt.Sprintf("Error creating store: %s", err))
 		return err
 	}
 
@@ -28,7 +29,7 @@ func (s StoreService) CreateStore(req stores.Config) error {
 func (s StoreService) UpdateStore(req stores.Config) error {
 	err := persistence.UpdateStoreConfig(s.Db, req)
 	if err != nil {
-		log.Printf("Error updating store %s: %v", req.ReferenceName, err)
+		logging.L.App.Error(fmt.Sprintf("Error updating store %s: %v", req.ReferenceName, err))
 		return err
 	}
 	return nil
@@ -38,7 +39,7 @@ func (s StoreService) UpdateStore(req stores.Config) error {
 func (s StoreService) DeleteStore(name string) error {
 	err := persistence.DeleteConfigByName(s.Db, name)
 	if err != nil {
-		log.Printf("Error deleting store %s: %v", name, err)
+		logging.L.App.Error(fmt.Sprintf("Error deleting store %s: %v", name, err))
 		return err
 	}
 	return nil

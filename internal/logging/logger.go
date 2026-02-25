@@ -7,22 +7,24 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var L *Loggers
+
 type Loggers struct {
 	App   *zap.Logger // Application logs
 	Audit *zap.Logger // Audit trail
 }
 
-func Setup(level, format, auditFile string) (*Loggers, error) {
+func Setup(level, format, auditFile string) {
 	// Application logger
 	appLogger := createLogger(level, format, os.Stdout)
 
 	// Audit logger (always JSON, separate file)
 	auditLogger := createAuditLogger(auditFile)
 
-	return &Loggers{
+	L = &Loggers{
 		App:   appLogger,
 		Audit: auditLogger,
-	}, nil
+	}
 }
 
 func createLogger(level, format string, output *os.File) *zap.Logger {

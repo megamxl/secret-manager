@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"log"
 	"secret-manager/internal/logging"
 	"secret-manager/pkg/files_helper"
 	"secret-manager/pkg/persistence"
@@ -20,8 +19,7 @@ type SecretService interface {
 	DeleteSecretConfig(name string) error
 }
 type TemplateServiceImpl struct {
-	Db  *gorm.DB
-	Log *logging.Loggers
+	Db *gorm.DB
 }
 
 func (t TemplateServiceImpl) StoreSecretConfig(req types.CreateSecretRequest) error {
@@ -38,7 +36,6 @@ func (t TemplateServiceImpl) UpdateSecretConfig(req types.CreateSecretRequest) e
 }
 
 func (t TemplateServiceImpl) DeleteSecretConfig(name string) error {
-	// TODO: add logic here to delete the physical file
 
 	byName, err := persistence.GetRequestByName(t.Db, name)
 	if err != nil {
@@ -57,13 +54,13 @@ func (t TemplateServiceImpl) FetchAndStoreTemplate(req types.CreateSecretRequest
 
 	configByName, err := persistence.FindConfigByName(t.Db, req.StoreName)
 	if err != nil {
-		log.Print("Error loading secret-config.json:", err)
+		logging.L.App.Error(fmt.Sprintf("Error loading secret-config.json: %s", err))
 		return err
 	}
 
 	store, err := configByName.CreateBackend()
 	if err != nil {
-		log.Print("Error creating store:", err)
+		logging.L.App.Error(fmt.Sprintf("Error creating store: %s", err))
 		return err
 	}
 
@@ -71,23 +68,23 @@ func (t TemplateServiceImpl) FetchAndStoreTemplate(req types.CreateSecretRequest
 
 	resolvedSecrets, err := store.ResolveSecrets(secret)
 	if err != nil {
-		log.Print("Error fetching secrets:", err)
+		logging.L.App.Error(fmt.Sprintf("Error fetching secrets: %s", err))
 		return err
 	}
 
 	template, err := templating.EvaluateTemplate(req.SecretWrapper.Content, resolvedSecrets, req.Name)
 	if err != nil {
-		log.Print("Error evaluating template:", err)
+		logging.L.App.Error(fmt.Sprintf("Error evaluating template: %s", err))
 		return err
 	}
 
 	err = files_helper.CreateFileAtomic(req.FilePath, template)
 	if err != nil {
-		log.Print("Error creating file:", err)
+		logging.L.App.Error(fmt.Sprintf("Error creating file: %s", err))
 		return err
 	}
 
-	t.Log.AuditLogUserEvent(fmt.Sprintf("File at path %s was resolved and saved", req.FilePath), "system", "rerolledFile")
+	logging.L.AuditLogUserEvent(fmt.Sprintf("File at path %s was resolved and saved", req.FilePath), "system", "rerolledFile")
 
 	return nil
 }

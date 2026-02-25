@@ -2,7 +2,8 @@ package service
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"secret-manager/internal/logging"
 	"secret-manager/pkg/persistence"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -40,7 +41,7 @@ func (r RotationJob) Run() {
 
 	rerolls, err := persistence.GetPendingRerolls(r.Db)
 	if err != nil {
-		log.Println(err)
+		logging.L.App.Error(fmt.Sprintf("Pending Reroll query failed %s", err.Error()))
 	}
 
 	g, ctx := errgroup.WithContext(context.Background())
@@ -63,13 +64,13 @@ func (r RotationJob) Run() {
 
 			// 2. Perform the work
 			if err := r.Service.FetchAndStoreTemplate(reroll); err != nil {
-				log.Printf("[ERROR] %s fetch failed: %v", reroll.FilePath, err)
+				logging.L.App.Error(fmt.Sprintf("%s fetch failed: %v", reroll.FilePath, err))
 				RerollFailureTotal.WithLabelValues(reroll.FilePath).Inc()
 				return nil
 			}
 
 			if err := persistence.SaveSecretConfig(r.Db, reroll); err != nil {
-				log.Printf("[ERROR] %s save failed: %v", reroll.FilePath, err)
+				logging.L.App.Error(fmt.Sprintf("[ERROR] %s save failed: %v", reroll.FilePath, err))
 				RerollFailureTotal.WithLabelValues(reroll.FilePath).Inc()
 				return nil
 			}
@@ -81,6 +82,6 @@ func (r RotationJob) Run() {
 	}
 
 	_ = g.Wait()
-	log.Printf("Batch complete. Total: %d, Failures: %d", len(rerolls), failedCount)
+	logging.L.App.Debug(fmt.Sprintf("Batch complete. Total: %d, Failures: %d", len(rerolls), failedCount))
 
 }

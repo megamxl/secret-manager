@@ -20,15 +20,15 @@ func main() {
 
 	setupConfig()
 
-	loggers := setupLoggers(config.Get())
-	defer loggers.Close()
+	setupLoggers(config.Get())
+	defer logging.L.Close()
 
 	db, err := persistence.InitDB()
 	if err != nil {
-		loggers.App.Fatal("db init failed", zap.Error(err))
+		logging.L.App.Fatal("db init failed", zap.Error(err))
 	}
 
-	handlers.SetupHandler(db, loggers)
+	handlers.SetupHandler(db)
 
 	reg := setupPrometheus()
 
@@ -37,10 +37,10 @@ func main() {
 	http.HandleFunc("/store", handlers.StoreHandler)
 
 	addr := fmt.Sprintf(":%d", config.Get().Server.Port)
-	loggers.App.Info("server listening", zap.String("addr", addr))
+	logging.L.App.Info("server listening", zap.String("addr", addr))
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		loggers.App.Fatal("server failed", zap.Error(err))
+		logging.L.App.Fatal("server failed", zap.Error(err))
 	}
 
 }
@@ -58,17 +58,13 @@ func setupPrometheus() *prometheus.Registry {
 	return reg
 }
 
-func setupLoggers(cfg *config.Config) *logging.Loggers {
-	loggers, err := logging.Setup(cfg.Logging.Level, cfg.Logging.Format, cfg.Logging.AuditFile)
-	if err != nil {
-		panic(err)
-	}
+func setupLoggers(cfg *config.Config) {
+	logging.Setup(cfg.Logging.Level, cfg.Logging.Format, cfg.Logging.AuditFile)
 
-	loggers.App.Info("starting secret-manager",
+	logging.L.App.Info("starting secret-manager",
 		zap.String("node", cfg.Agent.NodeName),
 		zap.Int("port", cfg.Server.Port),
 	)
-	return loggers
 }
 
 func setupConfig() {

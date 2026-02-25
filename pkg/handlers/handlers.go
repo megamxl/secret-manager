@@ -18,7 +18,6 @@ import (
 
 var tempService service2.SecretService
 var storeService service2.StoreService
-var log *logging.Loggers
 
 func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -41,7 +40,7 @@ func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and saved in the database", req.FilePath), "x", "CreateSecret")
+	logging.L.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and saved in the database", req.FilePath), "x", "CreateSecret")
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -62,7 +61,7 @@ func secretUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and updated in the database", req.FilePath), "x", "UpdateSecret")
+	logging.L.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and updated in the database", req.FilePath), "x", "UpdateSecret")
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -84,7 +83,7 @@ func secretDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.AuditLogUserEvent(fmt.Sprintf("Managedfile with name \" %s \" has been resolved delted", name), "x", "DeleteSecret")
+	logging.L.AuditLogUserEvent(fmt.Sprintf("Managedfile with name \" %s \" has been resolved delted", name), "x", "DeleteSecret")
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -99,7 +98,7 @@ func handleStoreCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been created", req.ReferenceName), "x", "CreateSecret")
+	logging.L.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been created", req.ReferenceName), "x", "CreateSecret")
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -115,7 +114,7 @@ func handleStoreUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been updated", req.ReferenceName), "x", "UpdateSecret")
+	logging.L.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been updated", req.ReferenceName), "x", "UpdateSecret")
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -131,7 +130,7 @@ func handleStoreDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been delted", name), "x", "DeleteSecret")
+	logging.L.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been delted", name), "x", "DeleteSecret")
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -139,7 +138,7 @@ func handleStoreDelete(w http.ResponseWriter, r *http.Request) {
 func decodeStoreRequest(w http.ResponseWriter, r *http.Request) (stores.Config, bool) {
 	var req stores.Config
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.App.Error(fmt.Sprintf("Error decoding store request: %v", err))
+		logging.L.App.Error(fmt.Sprintf("Error decoding store request: %v", err))
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return req, false
 	}
@@ -158,7 +157,7 @@ func decodeSecretRequest(w http.ResponseWriter, r *http.Request) (types.CreateSe
 	defer r.Body.Close()
 
 	if err := yaml.Unmarshal(body, &req); err != nil {
-		log.App.Error(fmt.Sprintf("Error decoding request: %v", err))
+		logging.L.App.Error(fmt.Sprintf("Error decoding request: %v", err))
 		http.Error(w, "Bad Request: Invalid format", 400)
 		return req, false
 	}
@@ -168,7 +167,7 @@ func decodeSecretRequest(w http.ResponseWriter, r *http.Request) (types.CreateSe
 
 func handleServiceError(w http.ResponseWriter, err error) bool {
 	if err != nil {
-		log.App.Error(fmt.Sprintf("Service Error: %v", err))
+		logging.L.App.Error(fmt.Sprintf("Service Error: %v", err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return true
 	}
@@ -203,11 +202,10 @@ func StoreHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SetupHandler(db *gorm.DB, loggers *logging.Loggers) {
+func SetupHandler(db *gorm.DB) {
 
 	tempService = service2.TemplateServiceImpl{
-		Db:  db,
-		Log: loggers,
+		Db: db,
 	}
 	storeService = service2.StoreService{
 		Db: db,
@@ -217,8 +215,6 @@ func SetupHandler(db *gorm.DB, loggers *logging.Loggers) {
 		Db:      db,
 		Service: tempService,
 	}
-
-	log = loggers
 
 	c := clockwerk.New()
 	c.Every(5 * time.Second).Do(job)

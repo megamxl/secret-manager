@@ -60,7 +60,7 @@ Content-Type: application/json
   "store_name": "{{vault}}",
   "reroll_time": "1M",
   "secret_wrapper": {
-    "content": "auth.ldap.bindDN=cn=admin,dc=example,dc=org\nauth.ldap.password={{ .ldap_pass }}\nauth.jwt.secret={{ .jwt_sign_key }}",
+    "content": "auth.ldap.bindDN=cn=admin,dc=example,dc=org\nauth.ldap.password={{ ldap_pass }}\nauth.jwt.secret={{ jwt_sign_key }}",
     "secret_references": {
       "ldap_pass": "secret/data/infrastructure/ldap/admin",
       "jwt_sign_key": "secret/data/apps/auth-service/jwt-key"
@@ -81,7 +81,7 @@ Content-Type: application/json
   "store_name": "{{vault}}",
   "reroll_time": "1D2H30M15S",
   "secret_wrapper": {
-    "content": "auth.ldap.password={{ .ldap_pass }}",
+    "content": "auth.ldap.password={{ ldap_pass }}",
     "secret_references": {
       "ldap_pass": "secret/data/infrastructure/ldap/admin"
     }
