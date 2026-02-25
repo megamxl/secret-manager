@@ -37,6 +37,10 @@ func (m MockTemplateService) UpdateSecretConfig(req types.CreateSecretRequest) e
 	return errors.New("not implemented in mock")
 }
 
+func (m MockTemplateService) GetAllSecretConfigs() ([]types.CreateSecretRequest, error) {
+	return nil, errors.New("not implemented in mock")
+}
+
 func (m MockTemplateService) DeleteSecretConfig(name string) error {
 	return errors.New("not implemented in mock")
 }
