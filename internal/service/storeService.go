@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"secret-manager/internal/logging"
 	"secret-manager/pkg/persistence"
@@ -37,7 +38,18 @@ func (s StoreService) UpdateStore(req stores.Config) error {
 
 // DeleteStore removes a store configuration from the database
 func (s StoreService) DeleteStore(name string) error {
-	err := persistence.DeleteConfigByName(s.Db, name)
+
+	use, err := persistence.IsStoreInUse(s.Db, name)
+	if err != nil {
+		logging.L.App.Error(fmt.Sprintf("Error Finding store %s: %v", name, err))
+		return err
+	}
+
+	if use {
+		return errors.New(fmt.Sprintf("Error store %s is still in use, remove all secrets using it: %v", name, err))
+	}
+
+	err = persistence.DeleteConfigByName(s.Db, name)
 	if err != nil {
 		logging.L.App.Error(fmt.Sprintf("Error deleting store %s: %v", name, err))
 		return err

@@ -6,7 +6,8 @@ import (
 	"io"
 	"net/http"
 	"secret-manager/internal/logging"
-	service2 "secret-manager/internal/service"
+	"secret-manager/internal/service"
+	"secret-manager/pkg/authentication"
 	"secret-manager/pkg/stores"
 	"secret-manager/pkg/types"
 	"time"
@@ -16,17 +17,12 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var tempService service2.SecretService
-var storeService service2.StoreService
+var tempService service.SecretService
+var storeService service.StoreService
 
-func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
+func secretCreationHandler(w http.ResponseWriter, r *http.Request, req types.CreateSecretRequest) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	req, ok := decodeSecretRequest(w, r)
-	if !ok {
 		return
 	}
 
@@ -40,19 +36,12 @@ func secretCreationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logging.L.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and saved in the database", req.FilePath), "x", "CreateSecret")
-
 	w.WriteHeader(http.StatusCreated)
 }
 
-func secretUpdateHandler(w http.ResponseWriter, r *http.Request) {
+func secretUpdateHandler(w http.ResponseWriter, r *http.Request, req types.CreateSecretRequest) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	req, ok := decodeSecretRequest(w, r)
-	if !ok {
 		return
 	}
 
@@ -61,76 +50,46 @@ func secretUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logging.L.AuditLogUserEvent(fmt.Sprintf("Managedfile with path \" %s \" has been resolved and updated in the database", req.FilePath), "x", "UpdateSecret")
-
 	w.WriteHeader(http.StatusOK)
 }
 
-func secretDeleteHandler(w http.ResponseWriter, r *http.Request) {
+func secretDeleteHandler(w http.ResponseWriter, r *http.Request, req types.CreateSecretRequest) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	name := r.URL.Query().Get("name")
-	if name == "" {
-		http.Error(w, "name parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	if err := tempService.DeleteSecretConfig(name); err != nil {
+	if err := tempService.DeleteSecretConfig(req.Name); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	logging.L.AuditLogUserEvent(fmt.Sprintf("Managedfile with name \" %s \" has been resolved delted", name), "x", "DeleteSecret")
-
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleStoreCreate(w http.ResponseWriter, r *http.Request) {
-	req, ok := decodeStoreRequest(w, r)
-	if !ok {
-		return
-	}
+func handleStoreCreate(w http.ResponseWriter, r *http.Request, req stores.Config) {
 
 	if handleServiceError(w, storeService.CreateStore(req)) {
 		return
 	}
 
-	logging.L.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been created", req.ReferenceName), "x", "CreateSecret")
-
 	w.WriteHeader(http.StatusCreated)
 }
 
-func handleStoreUpdate(w http.ResponseWriter, r *http.Request) {
-
-	req, ok := decodeStoreRequest(w, r)
-	if !ok {
-		return
-	}
+func handleStoreUpdate(w http.ResponseWriter, r *http.Request, req stores.Config) {
 
 	if handleServiceError(w, storeService.UpdateStore(req)) {
 		return
 	}
 
-	logging.L.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been updated", req.ReferenceName), "x", "UpdateSecret")
-
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleStoreDelete(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
-	if name == "" {
-		http.Error(w, "Bad Request: name missing", http.StatusBadRequest)
+func handleStoreDelete(w http.ResponseWriter, r *http.Request, req stores.Config) {
+
+	if handleServiceError(w, storeService.DeleteStore(req.ReferenceName)) {
 		return
 	}
-
-	if handleServiceError(w, storeService.DeleteStore(name)) {
-		return
-	}
-
-	logging.L.AuditLogUserEvent(fmt.Sprintf("SecretStore with name \" %s \" has been delted", name), "x", "DeleteSecret")
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -175,43 +134,110 @@ func handleServiceError(w http.ResponseWriter, err error) bool {
 }
 
 func SecretHandler(w http.ResponseWriter, r *http.Request) {
+
+	req, ok := decodeSecretRequest(w, r)
+	if !ok && r.Method != http.MethodDelete {
+		http.Error(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
+		return
+	}
+
+	action := ""
+
 	switch r.Method {
 	case http.MethodPost:
-		secretCreationHandler(w, r)
+		secretCreationHandler(w, r, req)
+		action = "CreateSecret"
 	case http.MethodPut:
-		secretUpdateHandler(w, r)
+		secretUpdateHandler(w, r, req)
+		action = "UpdateSecret"
 	case http.MethodDelete:
-		secretDeleteHandler(w, r)
+		secretDeleteHandler(w, r, req)
+		action = "DeleteSecret"
+	default:
+		w.Header().Set("Allow", "POST, PUT, DELETE")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	caller, err := callerString(r)
+	if err != nil {
+		http.Error(w, "The request passed the Auth Chack but no Identify was set call the Support", http.StatusBadRequest)
+	}
+
+	logging.L.AuditLogUserEvent(
+		fmt.Sprintf("Secret with the name %s was changed", req.Name),
+		caller,
+		action,
+	)
+}
+
+func StoreHandler(w http.ResponseWriter, r *http.Request) {
+
+	req, ok := decodeStoreRequest(w, r)
+	if !ok && r.Method != http.MethodDelete {
+		http.Error(w, "Bad Request Not valid SecretRequest", http.StatusBadRequest)
+		return
+	}
+
+	action := ""
+
+	switch r.Method {
+	case http.MethodPost:
+		handleStoreCreate(w, r, req)
+		action = "CreateStore"
+	case http.MethodPut:
+		handleStoreUpdate(w, r, req)
+		action = "UpdateStore"
+	case http.MethodDelete:
+		handleStoreDelete(w, r, req)
+		action = "DeleteStore"
 	default:
 		w.Header().Set("Allow", "POST, PUT, DELETE")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+
+	caller, err := callerString(r)
+	if err != nil {
+		http.Error(w, "The request passed the Auth Chack but no Identify was set call the Support", http.StatusBadRequest)
+	}
+
+	logging.L.AuditLogUserEvent(
+		fmt.Sprintf("Secret with the name %s was changed", req.ReferenceName),
+		caller,
+		action,
+	)
 }
 
-func StoreHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		handleStoreCreate(w, r)
-	case http.MethodPut:
-		handleStoreUpdate(w, r)
-	case http.MethodDelete:
-		handleStoreDelete(w, r)
+func callerString(r *http.Request) (string, error) {
+	id, err := authentication.IdentityFrom(r.Context())
+	if err != nil {
+		return "", err
+	}
+
+	switch id.Method {
+	case authentication.AuthMethodSPIRE:
+		return fmt.Sprintf("spire:%s", id.SPIFFEID), nil
+	case authentication.AuthMethodJWT:
+		return fmt.Sprintf("jwt:%s", id.Subject), nil
+	case authentication.AuthMethodMTLS:
+		return fmt.Sprintf("mtls:%s", id.Subject), nil
+	case authentication.AuthMethodNone:
+		return fmt.Sprintf("ip:%s", r.RemoteAddr), nil
 	default:
-		w.Header().Set("Allow", "POST, PUT, DELETE")
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return "", fmt.Errorf("unknown auth method: %q", id.Method)
 	}
 }
 
 func SetupHandler(db *gorm.DB) {
 
-	tempService = service2.TemplateServiceImpl{
+	tempService = service.TemplateServiceImpl{
 		Db: db,
 	}
-	storeService = service2.StoreService{
+	storeService = service.StoreService{
 		Db: db,
 	}
 
-	job := service2.RotationJob{
+	job := service.RotationJob{
 		Db:      db,
 		Service: tempService,
 	}

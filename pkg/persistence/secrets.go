@@ -131,3 +131,17 @@ func DeleteSecretConfig(db *gorm.DB, name string) error {
 
 	return nil
 }
+
+func IsStoreInUse(db *gorm.DB, storeName string) (bool, error) {
+	var count int64
+
+	err := db.Model(&types.Secret{}).
+		Where("store_name = ?", storeName).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}

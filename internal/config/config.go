@@ -15,10 +15,11 @@ var (
 )
 
 type Config struct {
-	Agent   AgentConfig   `mapstructure:"agent"`
-	Server  ServerConfig  `mapstructure:"server"`
-	Logging LoggingConfig `mapstructure:"logging"`
-	DB      DBConfig      `mapstructure:"database"`
+	Agent          AgentConfig    `mapstructure:"agent"`
+	Server         ServerConfig   `mapstructure:"server"`
+	Logging        LoggingConfig  `mapstructure:"logging"`
+	DB             DBConfig       `mapstructure:"database"`
+	SecurityConfig SecurityConfig `mapstructure:"security"`
 }
 
 type AgentConfig struct {
@@ -41,6 +42,41 @@ type DBConfig struct {
 	Path string `mapstructure:"path"`
 }
 
+type SecurityConfig struct {
+	TLS  TLSConfig  `mapstructure:"tls"`
+	Auth AuthConfig `mapstructure:"auth"`
+}
+
+type TLSConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	CertFile string `mapstructure:"certFile"`
+	KeyFile  string `mapstructure:"keyFile"`
+	// Used for mTLS client CA verification
+	ClientCAFile string `mapstructure:"clientCAFile"`
+}
+
+type AuthConfig struct {
+	// "none", "mtls", "jwt", "spire"
+	Method string      `mapstructure:"method"`
+	JWT    JWTConfig   `mapstructure:"jwt"`
+	SPIRE  SPIREConfig `mapstructure:"spire"`
+}
+
+type JWTConfig struct {
+	// Provide either a static secret (HMAC) or a JWKS URL (RSA/EC)
+	Secret   string `mapstructure:"secret"`   // HMAC shared secret
+	JWKSURL  string `mapstructure:"jwksUrl"`  // e.g. https://issuer/.well-known/jwks.json
+	Issuer   string `mapstructure:"issuer"`   // validated if non-empty
+	Audience string `mapstructure:"audience"` // validated if non-empty
+}
+
+type SPIREConfig struct {
+	SocketPath  string `mapstructure:"socketPath"`  // /tmp/spire-agent/public/api.sock
+	TrustDomain string `mapstructure:"trustDomain"` // e.g. example.org
+	// Allowlist of SPIFFE IDs that may call the API; empty = any valid SVID
+	AllowedSPIFFEIDs []string `mapstructure:"allowedSpiffeIds"`
+}
+
 func Load(configPath string) (*Config, error) {
 	v := viper.New()
 
@@ -51,6 +87,9 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("logging.format", "json")
 	v.SetDefault("logging.auditFile", "/var/log/secret-manager/audit.log")
 	v.SetDefault("database.path", "./secrets.db")
+	v.SetDefault("security.tls.enabled", false)
+	v.SetDefault("security.auth.method", "none")
+	v.SetDefault("security.spire.socketPath", "/tmp/spire-agent/public/api.sock")
 
 	// Load file
 	if configPath != "" {
