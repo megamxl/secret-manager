@@ -99,3 +99,30 @@ func TestStoreConfigPersistence(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestDeleteStoreWithManagedFiles(t *testing.T) {
+	db := SetupTestDB(t)
+
+	t.Run("Prevent deletion of store in use", func(t *testing.T) {
+		storeName := "active-vault"
+
+		// 1. Create a store config
+		conf := stores.Config{ReferenceName: storeName}
+		err := SaveStoreConfig(db, conf)
+		require.NoError(t, err)
+
+		// 2. Create a ManagedFile that references this store in its JSON "Request"
+		req := types.CreateSecretRequest{
+			Name:       "db-password",
+			StoreName:  storeName, // This goes into the JSON blob
+			RerollTime: types.RerollDuration(1 * time.Hour),
+		}
+		err = SaveSecretConfig(db, req)
+		require.NoError(t, err)
+
+		// 3. Verify IsStoreInUse correctly queries the JSON
+		inUse, err := IsStoreInUse(db, storeName)
+		assert.NoError(t, err)
+		assert.True(t, inUse, "Store should be reported as in use")
+	})
+}
