@@ -4,8 +4,7 @@ Currently, the Secret Manager is built from source.
 
 ## Prerequisites
 
-*   Go 1.21 or higher
-*   Git
+*   Go 1.26 or higher
 
 ## Build
 

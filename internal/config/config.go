@@ -24,7 +24,6 @@ type Config struct {
 
 type AgentConfig struct {
 	NodeName     string   `mapstructure:"nodeName"`
-	WorkDir      string   `mapstructure:"workDir"`
 	TrustedRoots []string `mapstructure:"trustedRoots"`
 }
 
@@ -81,7 +80,6 @@ func Load(configPath string) (*Config, error) {
 	v := viper.New()
 
 	// Defaults
-	v.SetDefault("agent.workDir", "/var/lib/secret-manager")
 	v.SetDefault("server.port", 8090)
 	v.SetDefault("logging.level", "info")
 	v.SetDefault("logging.format", "json")
@@ -89,7 +87,6 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("database.path", "./secrets.db")
 	v.SetDefault("security.tls.enabled", false)
 	v.SetDefault("security.auth.method", "none")
-	v.SetDefault("security.spire.socketPath", "/tmp/spire-agent/public/api.sock")
 
 	// Load file
 	if configPath != "" {

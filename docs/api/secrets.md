@@ -1,80 +1,185 @@
-# Secrets API
+# 🔐 Secrets API
 
-The Secret Manager provides a RESTful API for managing secrets.
+The **Secret Manager API** is a RESTful interface for creating, updating, deleting, and listing secrets.  
+It supports **JSON** and **YAML** request bodies and uses **Go templates** to render secrets.
 
-## Base URL
+---
 
-`http://localhost:8090/secret`
+## 📌 Rest Endpoint
+    /secret
+---
 
-## Create Secret
+## 🧱 Data Model
 
-**Method:** `POST`
+### Field Description
 
-**Request Body:**
+| Field                              | Type   | Description                                           |
+|------------------------------------|--------|-------------------------------------------------------|
+| `file_path`                        | string | Path where the rendered secret is written on the node |
+| `name`                             | string | Unique name of the secret configuration               |
+| `store_name`                       | string | Backend secret store reference                        |
+| `reroll_time`                      | string | Rotation interval (`1h`, `30m`, etc.)                 |
+| `secret_wrapper`                   | object | Secret rendering configuration                        |
+| `secret_wrapper.content`           | string | Go template used to render the secret                 |
+| `secret_wrapper.secret_references` | map    | Template variable → backend secret path               |
 
-```json
-{
-  "file_path": "/path/to/secret",
-  "name": "my-secret",
-  "store_name": "my-store",
-  "reroll_time": "1h",
-  "secret_wrapper": {
-    "content": "raw-secret-content",
-    "secret_references": {
-      "key": "value"
+---
+
+### Secret Schema (JSON)
+
+    {
+      "file_path": "/path/to/secret",
+      "name": "my-secret",
+      "store_name": "my-store",
+      "reroll_time": "1h",
+      "secret_wrapper": {
+        "content": "raw-secret-content",
+        "secret_references": {
+          "key": "backend/secret/path"
+        }
+      }
     }
-  }
-}
-```
 
-*   `file_path`: Path where the secret will be written on the node.
-*   `name`: Unique name of the secret config.
-*   `store_name`: Reference to the `store` where the secret is fetched from.
-*   `reroll_time`: Duration string (e.g., "1h", "30m").
-*   `secret_wrapper`:
-    *   `content`: Raw content (if not using references). In this content use go tmpl language to build your secret 
-    *   `secret_references`: Map of keys to secret paths in the backend store.
+### Secret Schema (YAML)
 
-**Response:**
+    file_path: /path/to/secret
+    name: my-secret
+    store_name: my-store
+    reroll_time: 1h
+    secret_wrapper:
+      content: raw-secret-content
+      secret_references:
+        key: backend/secret/path
 
-*   `201 Created`: Secret created successfully.
-*   `400 Bad Request`: Invalid request body.
-*   `500 Internal Server Error`: Server error.
+---
 
-## Update Secret
 
-**Method:** `PUT`
+## 🧠 Template & Reference Matching
 
-**Request Body:** Same as `Create Secret`.
+The `content` field uses **Go template syntax**.  
+Keys defined in `secret_references` become template variables.
 
-**Response:** `200 OK`
+### Example (YAML)
 
-## Delete Secret
+    file_path: /etc/app/config.yaml
+    name: database-config
+    store_name: vault-main
+    reroll_time: 1h
+    secret_wrapper:
+      content: |
+        username: {{ .db_user }}
+        password: {{ .db_password }}
+      secret_references:
+        db_user: secret/data/db/username
+        db_password: secret/data/db/password
 
-**Method:** `DELETE`
+✔ The variable names in `content` **must match** the keys in `secret_references`.
 
-**Request Body:**
+Rendered file:
 
-```json
-{
-  "name": "my-secret"
-}
-```
+    username: admin
+    password: s3cr3t
 
-**Response:** `204 No Content`
+---
 
-## List Secrets
+## ➕ Create Secret
 
-**Method:** `GET`
+**POST** `/secret`
 
-**Response:** Returns a list of all configured secrets.
+### Request (JSON)
 
-```json
-[
-  {
-    "file_path": "/path/to/secret",
-    "name": "my-secret",
-    ...
-  }
-]
-```
+    {
+      "file_path": "/etc/app/secret.env",
+      "name": "app-secret",
+      "store_name": "vault-main",
+      "reroll_time": "30m",
+      "secret_wrapper": {
+        "content": "API_KEY={{ .api_key }}",
+        "secret_references": {
+          "api_key": "secret/data/app/api_key"
+        }
+      }
+    }
+
+### Request (YAML)
+
+    file_path: /etc/app/secret.env
+    name: app-secret
+    store_name: vault-main
+    reroll_time: 30m
+    secret_wrapper:
+      content: API_KEY={{ .api_key }}
+      secret_references:
+        api_key: secret/data/app/api_key
+
+### Responses
+
+| Status | Description |
+|------|-------------|
+| `201 Created` | Secret created |
+| `400 Bad Request` | Invalid request |
+| `500 Internal Server Error` | Server error |
+
+---
+
+## ✏️ Update Secret
+
+**PUT** `/secret`
+
+Request body is identical to **Create Secret** (JSON or YAML).
+
+### Responses
+
+| Status | Description |
+|------|-------------|
+| `200 OK` | Secret updated |
+| `404 Not Found` | Secret does not exist |
+
+---
+
+## 🗑️ Delete Secret
+
+**DELETE** `/secret`
+
+### Request (JSON)
+
+    {
+      "name": "app-secret"
+    }
+
+### Request (YAML)
+
+    name: app-secret
+
+### Responses
+
+| Status | Description |
+|------|-------------|
+| `204 No Content` | Secret deleted |
+| `404 Not Found` | Secret not found |
+
+---
+
+## 📄 List Secrets
+
+**GET** `/secret`
+
+### Response
+
+    [
+      {
+        "name": "app-secret",
+        "file_path": "/etc/app/secret.env",
+        "store_name": "vault-main",
+        "reroll_time": "30m"
+      }
+    ]
+
+---
+
+## ✅ Best Practices
+
+- Prefer **YAML** for GitOps workflows
+- Keep `name` stable — it is the primary identifier
+- Ensure template variables match `secret_references`
+- Use `reroll_time` for automatic rotation

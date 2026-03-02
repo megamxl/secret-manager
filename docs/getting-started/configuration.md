@@ -7,8 +7,7 @@ The Secret Manager is configured via a YAML file. The default configuration file
 ```yaml
 agent:
   nodeName: "my-node"       # Defaults to hostname
-  workDir: "/var/lib/secret-manager"
-  trustedRoots: []          # List of trusted CA files
+  trustedRoots: []          # List of trusted paths from which root folder secrets are allowed to be placed 
 
 server:
   port: 8090
