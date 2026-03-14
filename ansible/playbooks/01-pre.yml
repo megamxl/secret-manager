@@ -70,6 +70,44 @@
         owner: "{{ secret_manager_service_user }}"
         group: "{{ secret_manager_service_group if secret_manager_service_group else secret_manager_service_user }}"
 
+    - name: Create the dedicated shared group
+      group:
+        name: "{{ secret_manager_shared_group }}"
+        state: present
+
+    - name: Add app user to the shared group
+      user:
+        name: "{{ application_users }}"
+        groups: "{{ secret_manager_shared_group }}"
+        append: yes
+
+    - name: Add agent user to the shared group
+      user:
+        name: "{{ secret_manager_service_user }}"
+        groups: "{{ secret_manager_shared_group }}"
+        append: yes
+
+    - name: Configure trusted roots with Setgid and Group ownership
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_shared_group }}"
+        # 2750 = Setgid (2) + rwxr-x--- (750)
+        # Forces new files to inherit 'secret_manager_readers' group
+        mode: '2750'
+      loop: "{{ secret_manager_trusted_roots }}"
+
+    - name: Ensure existing files are readable by the app user
+      file:
+        path: "{{ item }}"
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_shared_group }}"
+        mode: '0640'
+        recurse: yes
+      loop: "{{ secret_manager_trusted_roots }}"
+
+
     # Display system setup completion
     - name: Display system setup completion
       ansible.builtin.debug:

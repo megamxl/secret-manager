@@ -11,21 +11,7 @@
 
   tasks:
     # Detect binary architecture
-    - name: "Detect system architecture"
-      ansible.builtin.setup:
-      register: system_info
-
-    - name: "Determine target binary architecture"
-      ansible.builtin.set_fact:
-        target_arch: "{{ system_info.ansible_facts.ansible_architecture | default('amd64') }}"
-        target_os: "linux"
-
-    - name: "Display system architecture information"
-      ansible.builtin.debug:
-        msg: "Detected system: {{ target_os }}/{{ target_arch }}"
-
-    # Handle version-specific download
-    - name: "Handle version-specific download path for {{ secret_manager_version }}"
+    - name: "Handle download path for {{ secret_manager_version }}"
       ansible.builtin.set_fact:
         download_url: "https://github.com/megamxl/secret-manager/releases/download/v{{ secret_manager_version }}/secret-agent"
       when: secret_manager_version != "latest"
@@ -48,7 +34,6 @@
       ansible.builtin.debug:
         msg: "Download URL: {{ download_url }}"
 
-    # Download binary to temporary location
     - name: "Download secret-manager binary"
       ansible.builtin.get_url:
         url: "{{ download_url }}"
@@ -61,7 +46,6 @@
       retries: 3
       delay: 10
 
-    # Move binary to installation directory /opt/secret-manager
     - name: "Move binary to /opt/secret-manager/secret-manager"
       ansible.builtin.copy:
         src: "/tmp/{{ secret_manager_binary_name }}"
@@ -71,7 +55,6 @@
         owner: "secret-manager"
         group: "secret-manager"
 
-    # Verify binary was installed successfully
     - name: "Verify binary installation"
       ansible.builtin.stat:
         path: "/opt/secret-manager/secret-manager"
@@ -81,14 +64,12 @@
       ansible.builtin.debug:
         msg: "Binary installed: {{ binary_stat.stat.exists and binary_stat.stat.mode == '0755' }}"
 
-    # Cleanup temporary download file
     - name: "Cleanup temporary binary file"
       ansible.builtin.file:
         path: "/tmp/{{ secret_manager_binary_name }}"
         state: absent
       when: binary_stat.stat.exists
 
-    # Display download completion
     - name: "Display download completion"
       ansible.builtin.debug:
         msg: "✓ Binary download and installation completed"

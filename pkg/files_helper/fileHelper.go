@@ -34,8 +34,8 @@ func CreateFileAtomic(path string, evaluatedTemplate *bytes.Buffer) error {
 	tmpPath := tmpFile.Name()
 	defer os.Remove(tmpPath)
 
-	// 4. Secure Permissions: Set to 0600 (Owner Read/Write Only) MA thesis SEC-03
-	if err := tmpFile.Chmod(0600); err != nil {
+	// 4. Secure Permissions: Set to 0640 (Group Read/Owner Write Only) MA thesis SEC-03
+	if err := tmpFile.Chmod(0640); err != nil {
 		tmpFile.Close()
 		return err
 	}

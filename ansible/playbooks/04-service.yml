@@ -65,17 +65,14 @@
         msg: "Service running: {{ systemd_status.status.ActiveState == 'active' }}"
 
     # Perform health check if service is running
-    - name: "Perform health check on service"
-      ansible.builtin.uri:
-        url: "http://localhost:{{ secret_manager_port }}/metrics"
-        method: GET
-        timeout: 10
-        status_code: 200
-      register: health_check
-      when:
-        - systemd_status.status.ActiveState == 'active'
-      retries: 5
-      delay: 10
+    - name: "Wait for Secret Manager port to be open"
+      ansible.builtin.wait_for:
+        port: "{{ secret_manager_port }}"
+        host: "localhost"
+        state: started         # Ensures the port is open
+        timeout: 30            # Total time to wait
+        delay: 5               # Wait 5 seconds before first check
+      when: systemd_status.status.ActiveState == 'active'
 
     - name: "Display health check results"
       ansible.builtin.debug:

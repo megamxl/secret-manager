@@ -61,6 +61,24 @@
         - secret_manager_tls_key_file | length > 0
         - secret_manager_tls_client_ca_file | length > 0
 
+    - name: "Add secret-manager user to the ubuntu group"
+      ansible.builtin.user:
+        name: "{{ secret_manager_service_user }}"
+        groups: "ubuntu"
+        append: yes
+
+    - name: "Ensure trusted directories allow group access"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "ubuntu"
+        group: "ubuntu"
+        # 2 = setgid (new files inherit 'ubuntu' group)
+        # 770 = User: rwx, Group: rwx, Others: ---
+        mode: '2770'
+      loop: "{{ secret_manager_trusted_roots }}"
+
+
     # Display configuration completion
     - name: "Display configuration setup completion"
       ansible.builtin.debug:

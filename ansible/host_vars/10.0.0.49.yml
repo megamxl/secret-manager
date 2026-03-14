@@ -1,4 +1,12 @@
 secret_manager_tls_enabled: false
-secret_manager_auth_method: "none"
+secret_manager_auth_method: "jwt"
 secret_manager_version: "{{ lookup('env', 'SECRET_MANAGER_VERSION') | default('latest', true) }}"
 secret_manager_release_url: "{{ lookup('env', 'SECRET_MANAGER_RELEASE_URL') | default('https://api.github.com/repos/user/secret-manager/releases/latest', true) }}"
+
+secret_manager_trusted_roots:
+  - "/opt/secret-manager"
+  - "/home/ubuntu/test"
+
+secret_manager_jwt_issuer: "https://kc.helmheim.de/realms/secret-manager"
+secret_manager_jwt_audience: "account"
+secret_manager_jwt_jwks_url: "https://kc.helmheim.de/realms/secret-manager/protocol/openid-connect/certs"

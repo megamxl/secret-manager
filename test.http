@@ -1,5 +1,5 @@
 ### Variables
-@host = http://localhost:8090
+@host = http://10.0.0.49:8090
 @vault = secondVault
 @appSecret = pg-connection-string
 @stripeSecret = stripe-api-config
@@ -11,15 +11,31 @@ GET {{host}}/secret
 ### 1 Get all stores
 GET {{host}}/store
 
+###
+POST {{host}}/store
+Content-Type: application/json
+
+{
+  "type": "hc-vault",
+  "url": "http://10.0.0.49:8200",
+  "auth": {
+    "token": "root"
+  },
+  "mountPath": "secret",
+  "referenceName": "secondVault"
+}
+
+
 ### 2. Create: PostgreSQL Connection String
 # Reroll every 12 hours. Path uses Windows escaping.
 # Templates the user and password directly into the URI.
 POST {{host}}/secret
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "name": "{{appSecret}}",
-  "file_path": "C:\\Users\\maxl\\Documents\\db.connection",
+  "file_path": "/home/ubuntu/test/db.connection",
   "store_name": "{{vault}}",
   "reroll_time": "10S",
   "secret_wrapper": {
@@ -98,3 +114,6 @@ Content-Type: application/json
 
 ### 6. Cleanup (Optional)
 DELETE {{host}}/secret?name={{appSecret}}
+Content-Type: application/x-yaml
+
+name: {{ appSecret }}
