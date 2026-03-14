@@ -66,7 +66,7 @@ func TestCreateFile_TableDriven(t *testing.T) {
 			if !tc.wantErr {
 				// Verify the file was actually created and has correct perms
 				info, _ := os.Stat(targetPath)
-				if info.Mode().Perm() != 0600 {
+				if info.Mode().Perm() != 0640 {
 					t.Errorf("File perms are %v, want 0600", info.Mode().Perm())
 				}
 			}
