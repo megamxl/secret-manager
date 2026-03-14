@@ -1,0 +1,25 @@
+---
+# Master Orchestrator for Secret Manager Deployment
+
+- name: Build Secret Manager Project
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Pre-flight checks
+      ansible.builtin.debug:
+        msg: "Starting Secret Manager deployment..."
+
+    - name: Install required packages on Debian
+      ansible.builtin.apt:
+        name:
+          - git
+          - curl
+        state: present
+        update_cache: yes
+      when:
+        - ansible_os_family == "Debian"
+
+- name: Include a play after another play
+  ansible.builtin.import_playbook: playbooks/01-pre.yml

@@ -1,0 +1,76 @@
+---
+# Step 1: System Setup Playbook
+# Creates system user, directories, and installs dependencies
+
+- name: Configure Secret Manager System Setup
+  hosts: install
+  become: yes
+  gather_facts: yes
+  remote_user: ubuntu
+  vars_files:
+    - ../group_vars/all.yml
+
+  handlers:
+    - name: Restart Secret Manager service
+      service:
+        name: "{{ secret_manager_service_name }}"
+        state: restarted
+        enabled: yes
+
+  tasks:
+    # Verify Python is installed for some Ansible modules
+    - name: Verify Python is installed
+      ansible.builtin.command: python3 --version
+      register: python_check
+      failed_when: false
+      changed_when: false
+
+    # Create system user (always use secret-manager)
+    - name: Create secret-manager system user
+      ansible.builtin.user:
+        name: "{{ secret_manager_service_user }}"
+        system: yes
+        shell: /bin/false
+        home: "{{ secret_manager_work_dir }}"
+        create_home: false
+
+    # Create required directories with proper permissions
+    - name: Create installation directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_service_group if secret_manager_service_group else secret_manager_service_user }}"
+      loop:
+        - "{{ secret_manager_work_dir }}"
+        - "{{ secret_manager_config_dir }}"
+        - "{{ secret_manager_log_dir }}"
+        - "{{ secret_manager_data_dir }}"
+
+    # Create subdirectories for application data
+    - name: Create application subdirectories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_service_group if secret_manager_service_group else secret_manager_service_user }}"
+      loop:
+        - "{{ secret_manager_work_dir }}/bin"
+        - "{{ secret_manager_config_dir }}/tls"
+      when: secret_manager_tls_enabled | bool
+
+    # Ensure secret-manager user owns configuration directory
+    - name: "Force config directory ownership"
+      ansible.builtin.file:
+        path: "{{ secret_manager_config_dir }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_service_group if secret_manager_service_group else secret_manager_service_user }}"
+
+    # Display system setup completion
+    - name: Display system setup completion
+      ansible.builtin.debug:
+        msg: "✓ System setup completed"

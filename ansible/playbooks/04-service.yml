@@ -1,0 +1,104 @@
+---
+# Step 4: Service Management Playbook
+# Creates and manages systemd service for Secret Manager
+
+- name: Deploy Secret Manager Service
+  hosts: install
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - ../group_vars/all.yml
+
+  handlers:
+    - name: Restart Secret Manager service
+      service:
+        name: "{{ secret_manager_service_name }}"
+        state: restarted
+        enabled: yes
+
+  tasks:
+    # Create systemd service file
+    - name: "Create systemd service file"
+      ansible.builtin.template:
+        src: "../templates/secret-manager.service.j2"
+        dest: "/etc/systemd/system/{{ secret_manager_service_name }}.service"
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: "Reload systemd daemon"
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    # Display service file creation confirmation
+    - name: "Display service file confirmation"
+      ansible.builtin.debug:
+        msg: "Systemd service file created at /etc/systemd/system/{{ secret_manager_service_name }}.service"
+
+    # Re-enable service if it was previously disabled
+    - name: "Re-enable service unit"
+      ansible.builtin.systemd:
+        name: "{{ secret_manager_service_name }}"
+        enabled: yes
+
+    # Start the service
+    - name: "Start Secret Manager service"
+      ansible.builtin.service:
+        name: "{{ secret_manager_service_name }}"
+        state: started
+      register: service_start
+
+    - name: "Display service started status"
+      ansible.builtin.debug:
+        msg: "Service status: {{ service_start.status.ActiveState }}"
+
+    # Verify service is running
+    - name: "Check service configuration"
+      ansible.builtin.systemd:
+        name: "{{ secret_manager_service_name }}"
+      register: systemd_status
+      retries: 5
+      delay: 10
+
+    - name: "Display systemd service status"
+      ansible.builtin.debug:
+        msg: "Service running: {{ systemd_status.status.ActiveState == 'active' }}"
+
+    # Perform health check if service is running
+    - name: "Perform health check on service"
+      ansible.builtin.uri:
+        url: "http://localhost:{{ secret_manager_port }}/metrics"
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: health_check
+      when:
+        - systemd_status.status.ActiveState == 'active'
+      retries: 5
+      delay: 10
+
+    - name: "Display health check results"
+      ansible.builtin.debug:
+        msg: "{{ 'Health check passed' if health_check is succeeded else 'Health check failed - service may not be responding properly' }}"
+
+    # Generate service summary
+    - name: "Generate service deployment summary"
+      ansible.builtin.debug:
+        msg:
+          - "Secret Manager Service Deployment Summary:"
+          - "  Service Name: {{ secret_manager_service_name }}"
+          - "  Service File: /etc/systemd/system/{{ secret_manager_service_name }}.service"
+          - "  Binary Path: /opt/secret-manager/secret-manager"
+          - "  Config File: /etc/secret-manager/secret-manager.yml"
+          - "  Service Status: {{ systemd_status.status.ActiveState | default('unknown') }}"
+          - "  ✓ Service deployment completed successfully"
+
+    # Provide service management instructions
+    - name: "Provide service management instructions"
+      ansible.builtin.debug:
+        msg:
+          - "Service Management Options:"
+          - "  - To check service status: systemctl status {{ secret_manager_service_name }}"
+          - "  - To view logs: journalctl -u {{ secret_manager_service_name }} -f"
+          - "  - To restart service: systemctl restart {{ secret_manager_service_name }}"
+          - "  - To stop service: systemctl stop {{ secret_manager_service_name }}"

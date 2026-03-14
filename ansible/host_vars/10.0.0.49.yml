@@ -1,0 +1,4 @@
+secret_manager_tls_enabled: false
+secret_manager_auth_method: "none"
+secret_manager_version: "{{ lookup('env', 'SECRET_MANAGER_VERSION') | default('latest', true) }}"
+secret_manager_release_url: "{{ lookup('env', 'SECRET_MANAGER_RELEASE_URL') | default('https://api.github.com/repos/user/secret-manager/releases/latest', true) }}"

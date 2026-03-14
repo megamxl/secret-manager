@@ -1,0 +1,54 @@
+# Secret Manager General Configuration
+secret_manager_repo: "https://github.com/user/secret-manager"
+secret_manager_version: "latest"
+secret_manager_release_url: "https://api.github.com/repos/user/secret-manager/releases/latest"
+secret_manager_binary_name: "secret-manager"
+secret_manager_binary_checksum: ""
+
+# Service Configuration
+secret_manager_service_name: "secret-manager"
+secret_manager_service_user: "secret-manager"
+secret_manager_service_group: "secret-manager"
+secret_manager_work_dir: "/opt/secret-manager"
+secret_manager_config_dir: "/etc/secret-manager"
+secret_manager_log_dir: "/var/log/secret-manager"
+secret_manager_data_dir: "/var/lib/secret-manager"
+
+# Server Configuration
+secret_manager_port: 8090
+
+# Agent Configuration
+secret_manager_agent_node_name: "{{ ansible_hostname }}"
+
+# Logging Configuration
+secret_manager_logging_level: "info"
+secret_manager_logging_format: "json"
+secret_manager_logging_audit_file: "/var/log/secret-manager/audit.log"
+
+# Database Configuration
+secret_manager_db_type: "sqlite"
+secret_manager_db_path: "/var/lib/secret-manager/secrets.db"
+
+# Security Configuration
+secret_manager_tls_enabled: false
+secret_manager_tls_cert_file: ""
+secret_manager_tls_key_file: ""
+secret_manager_tls_client_ca_file: ""
+
+# Authentication Configuration
+secret_manager_auth_method: "none"
+secret_manager_jwt_secret: ""
+secret_manager_jwt_issuer: ""
+secret_manager_jwt_audience: ""
+secret_manager_jwt_jwks_url: ""
+secret_manager_spire_socket_path: ""
+secret_manager_spire_trust_domain: ""
+secret_manager_spire_allowed_spiffe_ids: []
+
+# Systemd Configuration
+secret_manager_service_start_timeout: 30
+
+# Dependencies
+need_packages:
+  - git
+  - curl

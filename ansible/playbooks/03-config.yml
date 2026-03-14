@@ -1,0 +1,67 @@
+---
+# Step 3: Configuration Setup Playbook
+# Generates and configures Secret Manager configuration file
+
+- name: Configure Secret Manager Application
+  hosts: install
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    # Display configuration generation start
+    - name: "Display configuration generation start"
+      ansible.builtin.debug:
+        msg: "Generating secret-manager configuration..."
+
+    # Create Secret Manager configuration from template
+    - name: "Generate secret-manager.yml configuration"
+      ansible.builtin.template:
+        src: "../templates/secret-manager.yml.j2"
+        dest: "{{ secret_manager_config_dir }}/secret-manager.yml"
+        mode: '0640'
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_service_group if secret_manager_service_group else secret_manager_service_user }}"
+
+    # Display configuration file location
+    - name: "Display configuration file location"
+      ansible.builtin.debug:
+        msg: "Configuration file created: {{ secret_manager_config_dir }}/secret-manager.yml"
+
+    # Setup TLS directories if TLS is enabled
+    - name: "Ensure TLS directory exists"
+      ansible.builtin.file:
+        path: "{{ secret_manager_config_dir }}/tls"
+        state: directory
+        mode: '0755'
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_service_group if secret_manager_service_group else secret_manager_service_user }}"
+      when: secret_manager_tls_enabled | bool
+
+    # Copy TLS certificates if provided and enabled
+    - name: "Copy TLS configuration files"
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ secret_manager_config_dir }}/tls/{{ item.dest }}"
+        mode: '0640'
+        owner: "{{ secret_manager_service_user }}"
+        group: "{{ secret_manager_service_group if secret_manager_service_group else secret_manager_service_user }}"
+        remote_src: yes
+      loop:
+        - src: "{{ secret_manager_tls_cert_file }}"
+          dest: "tls.cert"
+        - src: "{{ secret_manager_tls_key_file }}"
+          dest: "tls.key"
+        - src: "{{ secret_manager_tls_client_ca_file }}"
+          dest: "ca.cert"
+      when:
+        - secret_manager_tls_enabled | bool
+        - secret_manager_tls_cert_file | length > 0
+        - secret_manager_tls_key_file | length > 0
+        - secret_manager_tls_client_ca_file | length > 0
+
+    # Display configuration completion
+    - name: "Display configuration setup completion"
+      ansible.builtin.debug:
+        msg: "✓ Configuration setup completed"
