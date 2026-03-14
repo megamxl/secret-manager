@@ -1,0 +1,53 @@
+---
+# Uninstall Secret Manager Shared System Configurations
+# Removes user accounts, groups, and shared system configurations
+
+- name: Uninstall Secret Manager Shared Settings
+  hosts: uninstall
+  become: yes
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    # Remove secret-manager user
+    - name: Remove secret-manager user
+      ansible.builtin.user:
+        name: "{{ secret_manager_service_user }}"
+        state: absent
+        remove: yes
+      register: user_result
+
+    # Remove shared group
+    - name: Remove shared group
+      ansible.builtin.group:
+        name: "{{ secret_manager_shared_group }}"
+        state: absent
+      register: group_result
+
+    # Remove shared group from application users
+    - name: Remove shared group from application users
+      ansible.builtin.user:
+        name: "{{ application_users }}"
+        groups: "{{ secret_manager_shared_group }}"
+        append: yes
+      when: user_result.stdout_lines is defined and secret_manager_shared_group in user_result.stdout_lines
+      register: app_group_remove_result
+
+    # Remove shared group from agent user
+    - name: Remove shared group from agent user
+      ansible.builtin.user:
+        name: "{{ secret_manager_service_user }}"
+        groups: "{{ secret_manager_shared_group }}"
+        append: yes
+      when: user_result.stdout_lines is defined and secret_manager_shared_group in user_result.stdout_lines
+      register: agent_group_remove_result
+
+    - name: Display uninstall results
+      ansible.builtin.debug:
+        msg: |
+          Shared Settings Uninstall Results:
+          - User account removed ({{ secret_manager_service_user }}): {{ user_result.changed | default(false) }}
+          - Shared group removed ({{ secret_manager_shared_group }}): {{ group_result.changed | default(false) }}
+          - Shared group removed from application users: {{ app_group_remove_result.changed | default(false) }}
+          - Shared group removed from agent user: {{ agent_group_remove_result.changed | default(false) }}

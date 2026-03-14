@@ -48,6 +48,11 @@
         state: started
       register: service_start
 
+    - name: Restart the Secret Agent service
+      ansible.builtin.service:
+        name: "{{ secret_manager_service_name }}" # Replace with your actual service name
+        state: restarted
+
     - name: "Display service started status"
       ansible.builtin.debug:
         msg: "Service status: {{ service_start.status.ActiveState }}"

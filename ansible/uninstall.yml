@@ -1,0 +1,7 @@
+- name: Phase 1 - app-uninstall
+  import_playbook: playbooks/uninstall-app.yml
+
+- name: Phase 2 - system-settings-uninstall
+  import_playbook: playbooks/uninstall-shared.yml
+
+

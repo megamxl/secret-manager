@@ -1,0 +1,72 @@
+---
+# Uninstall Secret Manager Application
+# Stop and removes the Secret Manager service, binary, and all application files
+
+- name: Uninstall Secret Manager Application
+  hosts: uninstall
+  become: yes
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    # Stop and disable Secret Manager service
+    - name: Stop and disable Secret Manager service
+      ansible.builtin.systemd:
+        name: "{{ secret_manager_service_name }}"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      register: service_stop_result
+
+    # Stop and disable alternative service name if exists
+    - name: Stop and disable alternative Secret Manager service
+      ansible.builtin.systemd:
+        name: "secret-manager-app"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      register: alt_service_stop_result
+
+    # Remove binary from work directory
+    - name: Remove Secret Manager binary
+      ansible.builtin.file:
+        path: "{{ secret_manager_work_dir }}/bin/{{ secret_manager_binary_name }}"
+        state: absent
+      register: binary_result
+
+    # Remove DB file
+    - name: Remove database file
+      ansible.builtin.file:
+        path: "{{ secret_manager_db_path }}"
+        state: absent
+      register: db_result
+
+    # Remove audit log
+    - name: Remove audit log
+      ansible.builtin.file:
+        path: "{{ secret_manager_logging_audit_file }}"
+        state: absent
+      register: audit_result
+
+    - name: Remove installation directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ secret_manager_work_dir }}"
+        - "{{ secret_manager_config_dir }}"
+        - "{{ secret_manager_log_dir }}"
+        - "{{ secret_manager_data_dir }}"
+      register: directories_remove_result
+
+    - name: Display uninstall results
+      ansible.builtin.debug:
+        msg: |
+          Uninstall Results:
+          - Service stopped and disabled ({{ secret_manager_service_name }}): {{ service_stop_result.changed or alt_service_stop_result.changed }}
+          - Alternative service stopped and disabled (secret-manager-app): {{ alt_service_stop_result.changed }}
+          - Binary removed: {{ binary_result.changed or binary_result.failed == false }}
+          - Database file removed: {{ db_result.changed or db_result.failed == false }}
+          - Audit log removed: {{ audit_result.changed or audit_result.failed == false }}
+          - Installation directories removed: {{ directories_remove_result.changed }}
