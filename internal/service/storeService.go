@@ -44,9 +44,10 @@ func (s StoreService) GetAllStores() ([]stores.Config, error) {
 		return nil, err
 	}
 
-	for _, config := range allStores {
-		config.Auth = nil
+	for i := range allStores {
+		allStores[i].Auth = nil
 	}
+
 	return allStores, nil
 }
 
